@@ -1,0 +1,1 @@
+CREATE POLICY "Anyone can confirm attendance by ticket" ON public.registrations FOR UPDATE TO anon USING (true) WITH CHECK (true);

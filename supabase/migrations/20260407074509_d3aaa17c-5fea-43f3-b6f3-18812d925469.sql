@@ -1,0 +1,1 @@
+ALTER TABLE public.events ADD COLUMN registration_fields jsonb DEFAULT '{"full_name": true, "email": true, "phone": true, "attendee_type": true}'::jsonb;

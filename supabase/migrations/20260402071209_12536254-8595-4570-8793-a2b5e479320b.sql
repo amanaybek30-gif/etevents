@@ -1,0 +1,1 @@
+ALTER TABLE public.events ADD COLUMN registration_enabled boolean NOT NULL DEFAULT true;

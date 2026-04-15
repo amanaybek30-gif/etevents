@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS abandoned_registrations_email_event_unique ON public.abandoned_registrations (email, event_id);

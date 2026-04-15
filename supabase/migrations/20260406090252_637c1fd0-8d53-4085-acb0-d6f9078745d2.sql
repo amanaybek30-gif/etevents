@@ -1,0 +1,1 @@
+ALTER TABLE public.events ADD COLUMN ticket_only_mode boolean NOT NULL DEFAULT false;

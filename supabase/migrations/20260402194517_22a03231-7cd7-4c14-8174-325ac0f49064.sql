@@ -1,0 +1,1 @@
+ALTER TABLE public.admin_advertisements ADD COLUMN video_url text DEFAULT NULL;
