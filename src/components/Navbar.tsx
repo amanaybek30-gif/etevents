@@ -39,10 +39,13 @@ const Navbar = () => {
   const dashboardLabel = userRole === "admin" ? "Admin" : userRole === "organizer" ? "Dashboard" : "My Account";
 
   return (
-    <nav className="fixed top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link to="/" className="flex items-center gap-2 min-w-0">
-          <img src={versLogo} alt="VERS" className="h-11 w-11 object-contain" />
+    <nav
+      data-mobile-floating="true"
+      className="fixed inset-x-0 top-0 z-50 border-transparent bg-transparent shadow-none backdrop-blur-0 md:border-b md:border-border/50 md:bg-background/80 md:backdrop-blur-xl"
+    >
+      <div className="container mx-auto flex h-11 items-center justify-between px-3 md:h-16 md:px-4">
+        <Link to="/" className="flex min-w-0 items-center gap-1.5">
+          <img src={versLogo} alt="VERS" className="h-8 w-8 object-contain md:h-11 md:w-11" />
         </Link>
 
         {/* Desktop Nav */}
@@ -61,34 +64,41 @@ const Navbar = () => {
         </div>
 
         {/* Mobile Toggle */}
-        <div className="flex items-center gap-2 md:hidden">
-          <button className="text-foreground" onClick={() => setIsOpen(!isOpen)}>
-            {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        <div className="flex items-center gap-1.5 md:hidden">
+          <button
+            type="button"
+            aria-label={isOpen ? "Close navigation menu" : "Open navigation menu"}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-foreground transition-colors hover:bg-secondary/40"
+            onClick={() => setIsOpen(!isOpen)}
+          >
+            {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
       </div>
 
       {/* Mobile Menu */}
       {isOpen && (
-        <div className="border-t border-border bg-background/95 backdrop-blur-xl md:hidden">
-          <div className="container mx-auto flex flex-col gap-4 px-4 py-6">
-            <Link to="/" onClick={() => setIsOpen(false)} className="text-sm text-muted-foreground">Home</Link>
-            <Link to="/events" onClick={() => setIsOpen(false)} className="text-sm text-muted-foreground">Events</Link>
-            <Link to="/about" onClick={() => setIsOpen(false)} className="text-sm text-muted-foreground">About</Link>
-            {isLoggedIn ? (
-              <Link to={dashboardPath} onClick={() => setIsOpen(false)} className="text-sm text-muted-foreground">
-                {dashboardLabel}
-              </Link>
-            ) : (
-              <Link to="/auth?intent=organizer" onClick={() => setIsOpen(false)} className="text-sm text-muted-foreground">
-                Create Event
-              </Link>
-            )}
-            <Button asChild className="bg-gradient-gold text-primary-foreground">
-              <Link to={isLoggedIn ? dashboardPath : "/auth"} onClick={() => setIsOpen(false)}>
-                {isLoggedIn ? dashboardLabel : "Sign In"}
-              </Link>
-            </Button>
+        <div className="bg-transparent px-3 pb-3 md:hidden">
+          <div className="container mx-auto rounded-2xl border border-border/40 bg-background/95 px-3 py-3 shadow-gold backdrop-blur-xl">
+            <div className="flex flex-col gap-2.5">
+              <Link to="/" onClick={() => setIsOpen(false)} className="text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground">Home</Link>
+              <Link to="/events" onClick={() => setIsOpen(false)} className="text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground">Events</Link>
+              <Link to="/about" onClick={() => setIsOpen(false)} className="text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground">About</Link>
+              {isLoggedIn ? (
+                <Link to={dashboardPath} onClick={() => setIsOpen(false)} className="text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground">
+                  {dashboardLabel}
+                </Link>
+              ) : (
+                <Link to="/auth?intent=organizer" onClick={() => setIsOpen(false)} className="text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground">
+                  Create Event
+                </Link>
+              )}
+              <Button asChild size="sm" className="h-7 bg-gradient-gold text-[11px] text-primary-foreground">
+                <Link to={isLoggedIn ? dashboardPath : "/auth"} onClick={() => setIsOpen(false)}>
+                  {isLoggedIn ? dashboardLabel : "Sign In"}
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
       )}
