@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import HomepageAds from "@/components/HomepageAds";
 import { sampleEvents } from "@/data/sampleEvents";
 import EventCard from "@/components/EventCard";
+import PublishedEventCard from "@/components/PublishedEventCard";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import AnimatedCounter from "@/components/AnimatedCounter";
@@ -407,7 +408,7 @@ const Index = () => {
 
           {/* Sample Events */}
           {filteredSample.length > 0 && (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
               {filteredSample.map((event, i) => (
                 <EventCard key={event.id} event={event} index={i} />
               ))}
@@ -417,67 +418,15 @@ const Index = () => {
           {/* DB Events */}
           <AnimatePresence mode="popLayout">
             {filteredDb.length > 0 && (
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredDb.map((event, i) => {
-                  const imageSrc = event.image_url || sampleImageBySlug.get(event.slug);
-                  const isPostponed = !!(event as any).is_postponed;
-
-                  return (
-                    <motion.div
-                      key={event.id}
-                      layout
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      transition={{ duration: 0.3, delay: i * 0.05 }}
-                    >
-                      <Link
-                        to={`/event/${event.slug}`}
-                        className="group block overflow-hidden rounded-xl border border-border bg-card transition-all duration-300 hover:border-primary/50 hover:shadow-gold"
-                      >
-                        {imageSrc && (
-                          <div className="relative aspect-[16/10] overflow-hidden">
-                            <img src={imageSrc} alt={event.title} className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-110 ${isPostponed ? "blur-[2px] brightness-50" : ""}`} loading="lazy" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent" />
-                            <span className="absolute left-3 top-3 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">{event.category}</span>
-                            {isPostponed && (
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <span className="rounded-lg bg-yellow-500/90 px-6 py-2 text-lg font-display font-bold text-background uppercase tracking-wider -rotate-12 shadow-lg">Postponed</span>
-                              </div>
-                            )}
-                            <div className="absolute bottom-3 left-3 right-3">
-                              <h3 className="font-display text-xl font-bold text-foreground">{event.title}</h3>
-                            </div>
-                          </div>
-                        )}
-                        {!imageSrc && (
-                          <div className={`relative aspect-[16/10] overflow-hidden bg-secondary flex items-center justify-center ${isPostponed ? "brightness-50" : ""}`}>
-                            <span className="absolute left-3 top-3 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">{event.category}</span>
-                            {isPostponed && (
-                              <div className="absolute inset-0 flex items-center justify-center z-10">
-                                <span className="rounded-lg bg-yellow-500/90 px-6 py-2 text-lg font-display font-bold text-background uppercase tracking-wider -rotate-12 shadow-lg">Postponed</span>
-                              </div>
-                            )}
-                            <h3 className="font-display text-xl font-bold text-foreground px-4 text-center">{event.title}</h3>
-                          </div>
-                        )}
-                        <div className="space-y-3 p-4">
-                          <p className="line-clamp-2 text-sm text-muted-foreground">{event.short_description || "Exciting event coming soon!"}</p>
-                          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5 text-primary" /> {event.date}</span>
-                            <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5 text-primary" /> {event.location}</span>
-                          </div>
-                          <div className="flex items-center justify-between pt-2 border-t border-border">
-                            <span className="text-sm font-semibold text-primary">{event.ticket_price}</span>
-                            <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors flex items-center gap-1">
-                              View Details <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
-                            </span>
-                          </div>
-                        </div>
-                      </Link>
-                    </motion.div>
-                  );
-                })}
+              <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
+                {filteredDb.map((event, i) => (
+                  <PublishedEventCard
+                    key={event.id}
+                    event={event}
+                    index={i}
+                    fallbackImage={sampleImageBySlug.get(event.slug)}
+                  />
+                ))}
               </div>
             )}
           </AnimatePresence>
@@ -518,7 +467,7 @@ const Index = () => {
           >
             Why <span className="text-gradient-gold">VERS</span>?
           </motion.h2>
-          <div className="grid gap-8 md:grid-cols-3">
+          <div className="grid grid-cols-2 gap-4 sm:gap-8 md:grid-cols-3">
             {[
               {
                 title: "Seamless Event Creation",
@@ -630,7 +579,7 @@ const Index = () => {
               </h2>
               <p className="mt-4 text-muted-foreground">Hear from organizers and attendees who use VERS</p>
             </motion.div>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
               {testimonials.map((t: any, i: number) => (
                 <motion.div key={t.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
                   whileHover={{ y: -4 }}
