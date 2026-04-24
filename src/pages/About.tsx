@@ -1,8 +1,10 @@
+import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import { motion } from "framer-motion";
 import { Calendar, Users, Shield, Zap, BarChart3, Globe } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import aboutHeroBg from "@/assets/about-hero-bg.jpg";
 
 const features = [
@@ -15,6 +17,19 @@ const features = [
 ];
 
 const About = () => {
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase
+      .from("platform_settings")
+      .select("value")
+      .eq("key", "about_vion_video_url")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.value) setVideoUrl(data.value);
+      });
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <SEO
@@ -60,7 +75,7 @@ const About = () => {
 
           <div>
             <h2 className="font-display text-2xl font-bold text-foreground text-center mb-8">What We Offer</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
               {features.map((f) => (
                 <motion.div key={f.title} whileHover={{ y: -4 }} className="rounded-xl border border-border bg-card p-6 space-y-3">
                   <f.icon className="h-8 w-8 text-primary" />
@@ -71,19 +86,35 @@ const About = () => {
             </div>
           </div>
 
-          <div className="rounded-xl border border-border bg-card p-8 text-center space-y-4">
-            <h2 className="font-display text-2xl font-bold text-foreground">Built by VION Events</h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">
-              VION Events is an Ethiopian full event service company dedicated to transforming how events are organized and experienced across the country.
-            </p>
-            <a
-              href="https://vionevents.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-              Visit VION Events <Globe className="h-4 w-4" />
-            </a>
+          <div className="relative rounded-xl overflow-hidden min-h-[280px]">
+            {videoUrl && (
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="auto"
+                className="absolute inset-0 w-full h-full object-cover"
+                key={videoUrl}
+              >
+                <source src={videoUrl} type="video/mp4" />
+              </video>
+            )}
+            <div className="absolute inset-0 bg-background/30" />
+            <div className="relative p-8 text-center space-y-4">
+              <h2 className="font-display text-2xl font-bold text-foreground drop-shadow-lg">Built by VION Events</h2>
+              <p className="text-muted-foreground max-w-xl mx-auto drop-shadow-md">
+                VION Events is an Ethiopian full event service company dedicated to transforming how events are organized and experienced across the country.
+              </p>
+              <a
+                href="https://vionevents.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                Visit VION Events <Globe className="h-4 w-4" />
+              </a>
+            </div>
           </div>
         </motion.div>
       </div>
