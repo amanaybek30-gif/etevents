@@ -45,25 +45,25 @@ const AnnouncementBanner = () => {
   if (visible.length === 0) return null;
 
   return (
-    <div className="w-full z-40">
+    <div className="z-40 w-full">
       {visible.map(a => (
         <div
           key={a.id}
-          className="w-full bg-gradient-to-r from-primary via-primary/90 to-primary border-b border-primary-foreground/10"
+          className="w-full border-b border-primary-foreground/10 bg-gradient-to-r from-primary via-primary/90 to-primary"
         >
-          <div className="w-full px-4 py-2.5 flex items-center gap-3">
-            <Megaphone className="h-4 w-4 text-primary-foreground shrink-0" />
-            <div className="flex-1 min-w-0 flex items-center gap-3 flex-wrap">
-              <span className="text-sm font-bold text-primary-foreground">{a.title}</span>
+          <div className="flex w-full items-center gap-2 px-3 py-2 sm:gap-3 sm:px-4 sm:py-2.5">
+            <Megaphone className="h-3.5 w-3.5 shrink-0 text-primary-foreground sm:h-4 sm:w-4" />
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:gap-3">
+              <span className="text-[11px] font-bold text-primary-foreground sm:text-sm">{a.title}</span>
               {a.message && (
-                <span className="text-xs text-primary-foreground/80 truncate max-w-[50vw]">{a.message}</span>
+                <span className="max-w-[48vw] truncate text-[10px] text-primary-foreground/80 sm:max-w-[50vw] sm:text-xs">{a.message}</span>
               )}
               {a.link_url && (
                 <a
                   href={a.link_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-xs font-semibold text-primary-foreground underline underline-offset-2 hover:text-primary-foreground/80 shrink-0"
+                  className="shrink-0 text-[10px] font-semibold text-primary-foreground underline underline-offset-2 hover:text-primary-foreground/80 sm:text-xs"
                 >
                   {a.link_text || "Learn more"}
                 </a>
@@ -71,10 +71,10 @@ const AnnouncementBanner = () => {
             </div>
             <button
               onClick={() => dismiss(a.id)}
-              className="text-primary-foreground/70 hover:text-primary-foreground shrink-0 p-0.5"
+              className="shrink-0 p-0.5 text-primary-foreground/70 hover:text-primary-foreground"
               aria-label="Dismiss"
             >
-              <X className="h-4 w-4" />
+              <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </button>
           </div>
         </div>
