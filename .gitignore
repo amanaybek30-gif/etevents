@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+public/vion-bg-video.mp4
+public/vion-bg-compressed.mp4
+*.mp4
