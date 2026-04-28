@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Eye, Star } from "lucide-react";
 import type { AttendeeProfile } from "./types";
+import { fmt1 } from "@/lib/formatMetric";
 
 interface Props {
   profiles: AttendeeProfile[];
@@ -48,11 +49,11 @@ const CRMTable = ({ profiles, onSelect }: Props) => {
               <td className="px-4 py-3 text-center">{p.totalAttended}</td>
               <td className="px-4 py-3">
                 <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${p.attendanceRate >= 80 ? "bg-green-500/10 text-green-400" : p.attendanceRate >= 50 ? "bg-amber-500/10 text-amber-400" : "bg-destructive/10 text-destructive"}`}>
-                  {p.attendanceRate}%
+                  {fmt1(p.attendanceRate)}%
                 </span>
               </td>
               <td className="px-4 py-3">
-                <span className={`text-xs font-bold ${getScoreColor(p.engagementScore)}`}>{p.engagementScore}</span>
+                <span className={`text-xs font-bold ${getScoreColor(p.engagementScore)}`}>{fmt1(p.engagementScore)}</span>
               </td>
               <td className="px-4 py-3 text-xs text-muted-foreground max-w-[120px] truncate">{p.lastEvent}</td>
               <td className="px-4 py-3">
