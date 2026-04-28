@@ -57,6 +57,31 @@ const EventProfile = () => {
   const isAtCapacity = dbEvent?.expected_attendees && regCount !== undefined && regCount >= dbEvent.expected_attendees;
   const waitlistEnabled = (dbEvent as any)?.waitlist_enabled;
 
+  // Auto-close registration if the event date/time has already passed
+  const isEventPast = (() => {
+    if (!dbEvent) return false;
+    const endDateStr = (dbEvent as any).end_date || dbEvent.date;
+    if (!endDateStr) return false;
+    // For multi-day events use end_date; for single-day combine with time
+    const timeStr = (dbEvent as any).end_date ? "23:59" : (dbEvent.time || "23:59");
+    // Extract first time token (handles ranges like "10:00 AM - 4:00 PM" by using the start; fallback safe)
+    const cleanTime = String(timeStr).trim().split(/\s*-\s*/)[0] || "23:59";
+    let hh = 23, mm = 59;
+    const ampmMatch = cleanTime.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+    if (ampmMatch) {
+      hh = parseInt(ampmMatch[1], 10);
+      mm = parseInt(ampmMatch[2], 10);
+      const ap = ampmMatch[3]?.toUpperCase();
+      if (ap === "PM" && hh < 12) hh += 12;
+      if (ap === "AM" && hh === 12) hh = 0;
+    }
+    const eventEnd = new Date(`${endDateStr}T${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}:00`);
+    if (isNaN(eventEnd.getTime())) return false;
+    return eventEnd.getTime() < Date.now();
+  })();
+
+  const registrationOpen = (dbEvent as any)?.registration_enabled !== false && !isEventPast;
+
   // Track event page view with accurate source attribution
   const viewTracked = useRef(false);
   useEffect(() => {
@@ -605,13 +630,13 @@ const EventProfile = () => {
                       <button
                         key={tier.id}
                         type="button"
-                        disabled={(dbEvent as any).registration_enabled === false}
+                        disabled={!registrationOpen}
                         onClick={() => {
-                          if ((dbEvent as any).registration_enabled === false) return;
+                          if (!registrationOpen) return;
                           setPreSelectedTier(tier.id);
                           setRsvpOpen(true);
                         }}
-                        className={`w-full text-left rounded-lg border border-border bg-secondary/50 p-4 transition-all duration-200 group ${(dbEvent as any).registration_enabled === false ? 'opacity-50 cursor-not-allowed' : 'hover:border-primary hover:bg-primary/5'}`}
+                        className={`w-full text-left rounded-lg border border-border bg-secondary/50 p-4 transition-all duration-200 group ${!registrationOpen ? 'opacity-50 cursor-not-allowed' : 'hover:border-primary hover:bg-primary/5'}`}
                       >
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{tier.name}</span>
@@ -626,7 +651,7 @@ const EventProfile = () => {
               ) : (
                 <div>
                   <p className="text-sm text-muted-foreground">Ticket Price</p>
-                  <p className="font-display text-3xl font-bold text-primary">{(dbEvent as any).registration_enabled === false ? "Free" : dbEvent.ticket_price}</p>
+                  <p className="font-display text-3xl font-bold text-primary">{!registrationOpen ? "Free" : dbEvent.ticket_price}</p>
                 </div>
               )}
               {dbEvent.includes && dbEvent.includes.length > 0 && (
@@ -637,7 +662,7 @@ const EventProfile = () => {
                   </ul>
                 </div>
               )}
-              {(dbEvent as any).registration_enabled !== false ? (
+              {registrationOpen ? (
                 isAtCapacity && waitlistEnabled ? (
                   <WaitlistForm eventId={dbEvent.id} eventTitle={dbEvent.title} />
                 ) : (
@@ -652,7 +677,9 @@ const EventProfile = () => {
                 <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-center space-y-1">
                   <p className="text-sm font-semibold text-destructive">Registration Closed</p>
                   <p className="text-xs text-muted-foreground">
-                    {(dbEvent as any).registration_closed_reason === "event_passed"
+                    {isEventPast
+                      ? "This event has already ended."
+                      : (dbEvent as any).registration_closed_reason === "event_passed"
                       ? "This event date has passed."
                       : (dbEvent as any).registration_closed_reason === "registration_full"
                       ? "Registration is full."
