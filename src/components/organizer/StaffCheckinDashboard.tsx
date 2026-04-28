@@ -10,7 +10,7 @@ import {
   Clock, TrendingUp, AlertCircle, Upload
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import { fmt1 } from "@/lib/formatMetric";
+import { fmt1, round1 } from "@/lib/formatMetric";
 import * as XLSX from "xlsx";
 
 interface Props {
@@ -286,7 +286,7 @@ const StaffCheckinDashboard = ({ userId, userPlan = "free", subscriptionEnabled 
     toast.success(`Check-in link copied for ${staff.name}!`);
   };
 
-  const attendanceRate = totalApproved > 0 ? ((totalCheckins / totalApproved) * 100) : 0;
+  const attendanceRate = round1(totalApproved > 0 ? ((totalCheckins / totalApproved) * 100) : 0);
 
   if (loading) return <div className="flex items-center justify-center py-20 text-muted-foreground">Loading...</div>;
 
@@ -448,7 +448,7 @@ const StaffCheckinDashboard = ({ userId, userPlan = "free", subscriptionEnabled 
           </h3>
           <div className="space-y-2">
             {staffStats.map((stat, index) => {
-              const percentage = totalCheckins > 0 ? ((stat.count / totalCheckins) * 100) : 0;
+              const percentage = round1(totalCheckins > 0 ? ((stat.count / totalCheckins) * 100) : 0);
               return (
                 <div key={stat.staffId} className="rounded-lg border border-border bg-secondary/50 p-3 flex items-center gap-3">
                   <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-sm font-bold text-primary">
@@ -462,7 +462,7 @@ const StaffCheckinDashboard = ({ userId, userPlan = "free", subscriptionEnabled 
                     <div className="mt-1 h-2 rounded-full bg-secondary overflow-hidden">
                       <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${percentage}%` }} />
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">{percentage}% of total check-ins</p>
+                    <p className="text-xs text-muted-foreground mt-1">{fmt1(percentage)}% of total check-ins</p>
                   </div>
                 </div>
               );
