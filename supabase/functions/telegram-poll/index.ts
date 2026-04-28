@@ -1085,7 +1085,7 @@ async function handleOrgAnalytics(
 
     const convRate = (viewCount || 0) > 0 ? (((regCount || 0) / (viewCount || 1)) * 100) : 0;
 
-    text += `📌 *${event.title}*\n  👀 Views: ${viewCount || 0} | 📝 Registrations: ${regCount || 0} | 📈 Conv: ${convRate}%\n\n`;
+    text += `📌 *${event.title}*\n  👀 Views: ${viewCount || 0} | 📝 Registrations: ${regCount || 0} | 📈 Conv: ${convRate.toFixed(1)}%\n\n`;
   }
 
   await telegramApi("sendMessage", {
