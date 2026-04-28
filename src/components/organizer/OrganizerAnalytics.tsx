@@ -115,10 +115,10 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
       { name: "Pending", value: pending },
       { name: "Rejected", value: rejected },
     ]);
-    setAttendanceRate(approved > 0 ? Math.round((checkedIn / approved) * 100) : 0);
-    setConversionRate(recs.length > 0 ? Math.round((approved / recs.length) * 100) : 0);
-    setNoShowRate(approved > 0 ? Math.round((Math.max(noShows, 0) / approved) * 100) : 0);
-    setAvgRegPerEvent(events.length > 0 ? Math.round(recs.length / events.length) : 0);
+    setAttendanceRate(approved > 0 ? ((checkedIn / approved) * 100) : 0);
+    setConversionRate(recs.length > 0 ? ((approved / recs.length) * 100) : 0);
+    setNoShowRate(approved > 0 ? ((Math.max(noShows, 0) / approved) * 100) : 0);
+    setAvgRegPerEvent(events.length > 0 ? (recs.length / events.length) : 0);
 
     // Remaining capacity
     const totalExpected = events.reduce((sum, e) => sum + (e.expected_attendees || 0), 0);
@@ -149,7 +149,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
     const todayStr = new Date().toISOString().split("T")[0];
     const todayCheckins = recs.filter(r => r.checked_in && r.checked_in_at && r.checked_in_at.startsWith(todayStr));
     setLiveCheckins(todayCheckins.length);
-    setLiveRate(approved > 0 ? Math.round((todayCheckins.length / approved) * 100) : 0);
+    setLiveRate(approved > 0 ? ((todayCheckins.length / approved) * 100) : 0);
     const recentLive = todayCheckins
       .sort((a, b) => new Date(b.checked_in_at!).getTime() - new Date(a.checked_in_at!).getTime())
       .slice(0, 5)
@@ -175,7 +175,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
       setPeakArrival(peakArr);
       
       if (checkinTimes.length > 0) {
-        const avgSeconds = Math.round(checkinTimes.reduce((a, b) => a + b, 0) / checkinTimes.length);
+        const avgSeconds = (checkinTimes.reduce((a, b) => a + b, 0) / checkinTimes.length);
         const avgH = Math.floor(avgSeconds / 3600);
         const avgM = Math.floor((avgSeconds % 3600) / 60);
         // Create a 1-hour range centered on the average
@@ -221,8 +221,8 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
       });
       const uniqueEmails = Object.keys(emailEventSets).length;
       const returning = Object.values(emailEventSets).filter(s => s.size > 1).length;
-      setReturningPct(uniqueEmails > 0 ? Math.round((returning / uniqueEmails) * 100) : 0);
-      setFirstTimePct(uniqueEmails > 0 ? 100 - Math.round((returning / uniqueEmails) * 100) : 0);
+      setReturningPct(uniqueEmails > 0 ? ((returning / uniqueEmails) * 100) : 0);
+      setFirstTimePct(uniqueEmails > 0 ? 100 - ((returning / uniqueEmails) * 100) : 0);
 
       // Registration source
       const sources: Record<string, number> = {};
@@ -254,15 +254,15 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
         const evRegs = recs.filter(r => r.event_id === ev.id);
         const evApproved = evRegs.filter(r => r.status === "approved").length;
         const evChecked = evRegs.filter(r => r.checked_in).length;
-        return { name: ev.title.length > 20 ? ev.title.slice(0, 18) + "…" : ev.title, registered: evRegs.length, attended: evChecked, rate: evApproved > 0 ? Math.round((evChecked / evApproved) * 100) : 0 };
+        return { name: ev.title.length > 20 ? ev.title.slice(0, 18) + "…" : ev.title, registered: evRegs.length, attended: evChecked, rate: evApproved > 0 ? ((evChecked / evApproved) * 100) : 0 };
       }).sort((a, b) => b.registered - a.registered).slice(0, 8);
       setEventCompareData(evCompare);
 
       // Funnel
       setFunnelData([
         { stage: "Registered", count: recs.length, pct: 100 },
-        { stage: "Approved", count: approved, pct: recs.length > 0 ? Math.round((approved / recs.length) * 100) : 0 },
-        { stage: "Checked In", count: checkedIn, pct: recs.length > 0 ? Math.round((checkedIn / recs.length) * 100) : 0 },
+        { stage: "Approved", count: approved, pct: recs.length > 0 ? ((approved / recs.length) * 100) : 0 },
+        { stage: "Checked In", count: checkedIn, pct: recs.length > 0 ? ((checkedIn / recs.length) * 100) : 0 },
       ]);
 
       // Weekday distribution
@@ -351,19 +351,19 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
       const localRetRate = uniqueEmails > 0 ? (returning / uniqueEmails) * 100 : 0;
       const localAvgRegs = recs.length / Math.max(events.length, 1);
 
-      const attScore = Math.min(Math.round(localAttRate * 0.35), 35);
-      const growthScore = Math.min(Math.round(localAvgRegs * 0.15), 15);
-      const convScore = Math.min(Math.round(localConvRate * 0.25), 25);
-      const retScore = Math.min(Math.round(localRetRate * 0.15), 15);
+      const attScore = Math.min((localAttRate * 0.35), 35);
+      const growthScore = Math.min((localAvgRegs * 0.15), 15);
+      const convScore = Math.min((localConvRate * 0.25), 25);
+      const retScore = Math.min((localRetRate * 0.15), 15);
       const srcDiversityScore = Math.min(Object.keys(sources).length * 2.5, 10);
-      const total = Math.round(attScore + growthScore + convScore + retScore + srcDiversityScore);
+      const total = (attScore + growthScore + convScore + retScore + srcDiversityScore);
       setPerformanceScore(Math.min(total, 100));
       setPerformanceBreakdown([
         { label: "Attendance Rate", score: attScore, max: 35 },
         { label: "Conversion Rate", score: convScore, max: 25 },
         { label: "Community Building", score: retScore, max: 15 },
         { label: "Registration Volume", score: growthScore, max: 15 },
-        { label: "Source Diversity", score: Math.round(srcDiversityScore), max: 10 },
+        { label: "Source Diversity", score: (srcDiversityScore), max: 10 },
       ]);
     }
   }, [userId, isAdvanced, selectedEventId]);
@@ -589,7 +589,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
     if (sourceData.length > 0) {
       drawSectionTitle("7. Registration Source Tracking");
       sourceData.forEach(s => {
-        const pct = totalRegs > 0 ? Math.round((s.value / totalRegs) * 100) : 0;
+        const pct = totalRegs > 0 ? ((s.value / totalRegs) * 100) : 0;
         drawRow(s.name, `${s.value} (${pct}%)`);
       });
       y += 4;
@@ -884,7 +884,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-bold text-foreground">{s.value}</span>
-                        <span className="text-xs text-muted-foreground">({totalViews > 0 ? Math.round((s.value / totalViews) * 100) : 0}%)</span>
+                        <span className="text-xs text-muted-foreground">({totalViews > 0 ? ((s.value / totalViews) * 100) : 0}%)</span>
                       </div>
                     </div>
                   ))}
@@ -895,7 +895,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
               {totalViews > 0 && totalRegs > 0 && (
                 <div className="mt-4 rounded-lg bg-secondary p-3 text-center">
                   <p className="text-xs text-muted-foreground">View → Registration Rate</p>
-                  <p className="font-display text-xl font-bold text-primary">{Math.round((totalRegs / totalViews) * 100)}%</p>
+                  <p className="font-display text-xl font-bold text-primary">{((totalRegs / totalViews) * 100)}%</p>
                 </div>
               )}
             </div>
@@ -974,7 +974,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-bold text-foreground">{s.value}</span>
-                        <span className="text-xs text-muted-foreground">({totalRegs > 0 ? Math.round((s.value / totalRegs) * 100) : 0}%)</span>
+                        <span className="text-xs text-muted-foreground">({totalRegs > 0 ? ((s.value / totalRegs) * 100) : 0}%)</span>
                       </div>
                     </div>
                   ))}
