@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import { toast } from "sonner";
-import { fmt1 } from "@/lib/formatMetric";
+import { fmt1, round1 } from "@/lib/formatMetric";
 
 interface Props {
   userId: string;
@@ -116,10 +116,10 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
       { name: "Pending", value: pending },
       { name: "Rejected", value: rejected },
     ]);
-    setAttendanceRate(approved > 0 ? ((checkedIn / approved) * 100) : 0);
-    setConversionRate(recs.length > 0 ? ((approved / recs.length) * 100) : 0);
-    setNoShowRate(approved > 0 ? ((Math.max(noShows, 0) / approved) * 100) : 0);
-    setAvgRegPerEvent(events.length > 0 ? (recs.length / events.length) : 0);
+    setAttendanceRate(round1(approved > 0 ? ((checkedIn / approved) * 100) : 0));
+    setConversionRate(round1(recs.length > 0 ? ((approved / recs.length) * 100) : 0));
+    setNoShowRate(round1(approved > 0 ? ((Math.max(noShows, 0) / approved) * 100) : 0));
+    setAvgRegPerEvent(round1(events.length > 0 ? (recs.length / events.length) : 0));
 
     // Remaining capacity
     const totalExpected = events.reduce((sum, e) => sum + (e.expected_attendees || 0), 0);
@@ -150,7 +150,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
     const todayStr = new Date().toISOString().split("T")[0];
     const todayCheckins = recs.filter(r => r.checked_in && r.checked_in_at && r.checked_in_at.startsWith(todayStr));
     setLiveCheckins(todayCheckins.length);
-    setLiveRate(approved > 0 ? ((todayCheckins.length / approved) * 100) : 0);
+    setLiveRate(round1(approved > 0 ? ((todayCheckins.length / approved) * 100) : 0));
     const recentLive = todayCheckins
       .sort((a, b) => new Date(b.checked_in_at!).getTime() - new Date(a.checked_in_at!).getTime())
       .slice(0, 5)
@@ -222,8 +222,8 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
       });
       const uniqueEmails = Object.keys(emailEventSets).length;
       const returning = Object.values(emailEventSets).filter(s => s.size > 1).length;
-      setReturningPct(uniqueEmails > 0 ? ((returning / uniqueEmails) * 100) : 0);
-      setFirstTimePct(uniqueEmails > 0 ? 100 - ((returning / uniqueEmails) * 100) : 0);
+      setReturningPct(round1(uniqueEmails > 0 ? ((returning / uniqueEmails) * 100) : 0));
+      setFirstTimePct(round1(uniqueEmails > 0 ? 100 - ((returning / uniqueEmails) * 100) : 0));
 
       // Registration source
       const sources: Record<string, number> = {};
@@ -255,15 +255,15 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
         const evRegs = recs.filter(r => r.event_id === ev.id);
         const evApproved = evRegs.filter(r => r.status === "approved").length;
         const evChecked = evRegs.filter(r => r.checked_in).length;
-        return { name: ev.title.length > 20 ? ev.title.slice(0, 18) + "…" : ev.title, registered: evRegs.length, attended: evChecked, rate: evApproved > 0 ? ((evChecked / evApproved) * 100) : 0 };
+        return { name: ev.title.length > 20 ? ev.title.slice(0, 18) + "…" : ev.title, registered: evRegs.length, attended: evChecked, rate: round1(evApproved > 0 ? ((evChecked / evApproved) * 100) : 0) };
       }).sort((a, b) => b.registered - a.registered).slice(0, 8);
       setEventCompareData(evCompare);
 
       // Funnel
       setFunnelData([
         { stage: "Registered", count: recs.length, pct: 100 },
-        { stage: "Approved", count: approved, pct: recs.length > 0 ? ((approved / recs.length) * 100) : 0 },
-        { stage: "Checked In", count: checkedIn, pct: recs.length > 0 ? ((checkedIn / recs.length) * 100) : 0 },
+        { stage: "Approved", count: approved, pct: round1(recs.length > 0 ? ((approved / recs.length) * 100) : 0) },
+        { stage: "Checked In", count: checkedIn, pct: round1(recs.length > 0 ? ((checkedIn / recs.length) * 100) : 0) },
       ]);
 
       // Weekday distribution
@@ -352,13 +352,13 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
       const localRetRate = uniqueEmails > 0 ? (returning / uniqueEmails) * 100 : 0;
       const localAvgRegs = recs.length / Math.max(events.length, 1);
 
-      const attScore = Math.min((localAttRate * 0.35), 35);
-      const growthScore = Math.min((localAvgRegs * 0.15), 15);
-      const convScore = Math.min((localConvRate * 0.25), 25);
-      const retScore = Math.min((localRetRate * 0.15), 15);
-      const srcDiversityScore = Math.min(Object.keys(sources).length * 2.5, 10);
+      const attScore = round1(Math.min((localAttRate * 0.35), 35));
+      const growthScore = round1(Math.min((localAvgRegs * 0.15), 15));
+      const convScore = round1(Math.min((localConvRate * 0.25), 25));
+      const retScore = round1(Math.min((localRetRate * 0.15), 15));
+      const srcDiversityScore = round1(Math.min(Object.keys(sources).length * 2.5, 10));
       const total = (attScore + growthScore + convScore + retScore + srcDiversityScore);
-      setPerformanceScore(Math.min(total, 100));
+      setPerformanceScore(round1(Math.min(total, 100)));
       setPerformanceBreakdown([
         { label: "Attendance Rate", score: attScore, max: 35 },
         { label: "Conversion Rate", score: convScore, max: 25 },
@@ -392,7 +392,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
       { Metric: "Total Approved", Value: totalApproved },
       { Metric: "Total Checked In", Value: checkedInCount },
       { Metric: "Attendance Rate", Value: `${fmt1(attendanceRate)}%` },
-      { Metric: "No-Show Rate", Value: `${noShowRate}%` },
+      { Metric: "No-Show Rate", Value: `${fmt1(noShowRate)}%` },
       { Metric: "No-Shows", Value: noShowCount },
       { Metric: "Conversion Rate", Value: `${fmt1(conversionRate)}%` },
       { Metric: "Revenue (ETB)", Value: revenue },
@@ -412,11 +412,11 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
       if (sourceData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(sourceData.map(s => ({ Source: s.name, Count: s.value }))), "Registration Sources");
       if (attendeeTypeData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(attendeeTypeData.map(t => ({ Type: t.name, Count: t.value }))), "Ticket Types");
       if (paymentMethodData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(paymentMethodData.map(p => ({ Method: p.name, Count: p.value }))), "Payment Methods");
-      if (eventCompareData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(eventCompareData.map(e => ({ Event: e.name, Registered: e.registered, Attended: e.attended, "Rate %": e.rate }))), "Event Comparison");
+      if (eventCompareData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(eventCompareData.map(e => ({ Event: e.name, Registered: e.registered, Attended: e.attended, "Rate %": fmt1(e.rate) }))), "Event Comparison");
       if (peakArrival.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(peakArrival.map(p => ({ Hour: p.hour, "Check-ins": p.count }))), "Check-in Times");
       if (checkinTimeline.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(checkinTimeline.map(c => ({ Time: c.time, "Check-ins": c.count }))), "Check-in Timeline");
       if (demographicData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(demographicData.map(d => ({ Organization: d.name, Count: d.value }))), "Demographics");
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(funnelData.map(f => ({ Stage: f.stage, Count: f.count, Percentage: `${f.pct}%` }))), "Funnel");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(funnelData.map(f => ({ Stage: f.stage, Count: f.count, Percentage: `${fmt1(f.pct)}%` }))), "Funnel");
     }
     XLSX.writeFile(wb, `Analytics_${new Date().toISOString().split("T")[0]}.xlsx`);
     toast.success("Excel report exported!");
@@ -450,15 +450,15 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
       `Total Registrations: ${totalRegs}`,
       `Total Approved: ${totalApproved}`,
       `Total Checked In: ${checkedInCount}`,
-      `Attendance Rate: ${attendanceRate}%`,
-      `No-Show Rate: ${noShowRate}% (${noShowCount} attendees)`,
-      `Conversion Rate: ${conversionRate}%`,
+      `Attendance Rate: ${fmt1(attendanceRate)}%`,
+      `No-Show Rate: ${fmt1(noShowRate)}% (${noShowCount} attendees)`,
+      `Conversion Rate: ${fmt1(conversionRate)}%`,
       `Revenue: ${revenue.toLocaleString()} ETB`,
       `Total Events: ${totalEvents}`,
-      `Avg Registrations/Event: ${avgRegPerEvent}`,
+      `Avg Registrations/Event: ${fmt1(avgRegPerEvent)}`,
     ];
     if (isAdvanced) {
-      lines.push(`Peak Arrival Time: ${peakHour}`, `Returning Attendees: ${fmt1(returningPct)}%`, `First-Time Attendees: ${fmt1(firstTimePct)}%`, `Event Performance Score: ${performanceScore}/100`);
+      lines.push(`Peak Arrival Time: ${peakHour}`, `Returning Attendees: ${fmt1(returningPct)}%`, `First-Time Attendees: ${fmt1(firstTimePct)}%`, `Event Performance Score: ${fmt1(performanceScore)}/100`);
     }
     doc.setFontSize(11);
     lines.forEach(l => { doc.text(l, 20, y); y += 7; });
@@ -525,7 +525,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
     doc.setFont("helvetica", "normal");
     doc.text(`Generated on ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}`, pageW / 2, 90, { align: "center" });
     doc.setFontSize(10);
-    doc.text(`Performance Score: ${performanceScore}/100`, pageW / 2, 102, { align: "center" });
+    doc.text(`Performance Score: ${fmt1(performanceScore)}/100`, pageW / 2, 102, { align: "center" });
 
     // Content pages
     doc.addPage();
@@ -538,7 +538,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
     drawRow("Total Approved", totalApproved.toString());
     drawRow("Total Checked In", checkedInCount.toString());
     drawRow("Attendance Rate", `${fmt1(attendanceRate)}%`, true);
-    drawRow("No-Show Rate", `${noShowRate}%`);
+    drawRow("No-Show Rate", `${fmt1(noShowRate)}%`);
     drawRow("No-Shows", noShowCount.toString());
     drawRow("Remaining Capacity", remainingCapacity !== null ? remainingCapacity.toLocaleString() : "N/A");
     drawRow("Revenue (ETB)", revenue.toLocaleString(), true);
@@ -547,13 +547,13 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
     // 2. Event Summary
     drawSectionTitle("2. Event Summary");
     drawRow("Total Events", totalEvents.toString());
-    drawRow("Avg Registrations/Event", avgRegPerEvent.toString());
+    drawRow("Avg Registrations/Event", fmt1(avgRegPerEvent));
     drawRow("Conversion Rate", `${fmt1(conversionRate)}%`);
     y += 4;
 
     // 3. Registration Funnel
     drawSectionTitle("3. Registration Funnel");
-    funnelData.forEach(f => drawRow(f.stage, `${f.count} (${f.pct}%)`));
+    funnelData.forEach(f => drawRow(f.stage, `${f.count} (${fmt1(f.pct)}%)`));
     y += 4;
 
     // 4. Returning vs New Attendees
@@ -567,7 +567,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
     drawRow("Registered (Approved)", totalApproved.toString());
     drawRow("Attended (Checked In)", checkedInCount.toString());
     drawRow("No-Shows", noShowCount.toString(), true);
-    drawRow("No-Show Rate", `${noShowRate}%`);
+    drawRow("No-Show Rate", `${fmt1(noShowRate)}%`);
     y += 4;
 
     // 6. Check-in Insights
@@ -590,7 +590,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
     if (sourceData.length > 0) {
       drawSectionTitle("7. Registration Source Tracking");
       sourceData.forEach(s => {
-        const pct = Number(fmt1(totalRegs > 0 ? ((s.value / totalRegs) * 100) : 0));
+        const pct = fmt1(totalRegs > 0 ? ((s.value / totalRegs) * 100) : 0);
         drawRow(s.name, `${s.value} (${pct}%)`);
       });
       y += 4;
@@ -635,7 +635,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
         doc.text(e.name, margin + 2, y);
         doc.text(e.registered.toString(), margin + 95, y);
         doc.text(e.attended.toString(), margin + 120, y);
-        doc.text(`${e.rate}%`, margin + 142, y);
+        doc.text(`${fmt1(e.rate)}%`, margin + 142, y);
         y += 5;
       });
       y += 4;
@@ -666,7 +666,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
     drawSectionTitle("15. Event Performance Score");
     drawRow("Overall Score", `${fmt1(performanceScore)}/100`, true);
     drawSeparator();
-    performanceBreakdown.forEach(b => drawRow(`  ${b.label}`, `${b.score}/${b.max}`));
+    performanceBreakdown.forEach(b => drawRow(`  ${b.label}`, `${fmt1(b.score)}/${b.max}`));
 
     // Footer on last page
     const totalPages = doc.getNumberOfPages();
@@ -750,7 +750,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
             { label: "Registrations", value: totalRegs, icon: Users },
             { label: "Checked-in", value: checkedInCount, icon: UserCheck },
             { label: "Attendance Rate", value: `${fmt1(attendanceRate)}%`, icon: TrendingUp },
-            { label: "No-Show Rate", value: `${noShowRate}%`, icon: EyeOff },
+      { label: "No-Show Rate", value: `${fmt1(noShowRate)}%`, icon: EyeOff },
             { label: "Remaining Capacity", value: remainingCapacity !== null ? remainingCapacity.toLocaleString() : "—", icon: Shield },
           ].map(s => (
             <div key={s.label} className="rounded-xl border border-border bg-card p-4 text-center">
@@ -820,7 +820,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
                 <p className="text-xs text-muted-foreground">Today's Check-ins</p>
               </div>
               <div className="rounded-lg bg-secondary p-3 text-center">
-                <p className="font-display text-2xl font-bold text-foreground">{liveRate}%</p>
+                <p className="font-display text-2xl font-bold text-foreground">{fmt1(liveRate)}%</p>
                 <p className="text-xs text-muted-foreground">Today's Attendance</p>
               </div>
               <div className="rounded-lg bg-secondary p-3 text-center col-span-2 sm:col-span-1">
@@ -896,7 +896,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
               {totalViews > 0 && totalRegs > 0 && (
                 <div className="mt-4 rounded-lg bg-secondary p-3 text-center">
                   <p className="text-xs text-muted-foreground">View → Registration Rate</p>
-                  <p className="font-display text-xl font-bold text-primary">{((totalRegs / totalViews) * 100)}%</p>
+                  <p className="font-display text-xl font-bold text-primary">{fmt1((totalRegs / totalViews) * 100)}%</p>
                 </div>
               )}
             </div>
@@ -938,7 +938,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
             </div>
             <div className="rounded-xl border border-border bg-card p-4 text-center">
               <Percent className="mx-auto h-5 w-5 text-muted-foreground mb-1" />
-              <p className="font-display text-2xl font-bold text-foreground">{noShowRate}%</p>
+              <p className="font-display text-2xl font-bold text-foreground">{fmt1(noShowRate)}%</p>
               <p className="text-xs text-muted-foreground">No-Show Rate</p>
             </div>
           </div>
@@ -951,7 +951,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
                 <div key={f.stage} className="space-y-1">
                   <div className="flex justify-between text-sm">
                     <span className="text-foreground font-medium">{f.stage}</span>
-                    <span className="text-muted-foreground">{f.count} ({f.pct}%)</span>
+                    <span className="text-muted-foreground">{f.count} ({fmt1(f.pct)}%)</span>
                   </div>
                   <div className="h-8 w-full rounded-lg bg-secondary overflow-hidden">
                     <div className="h-full rounded-lg transition-all duration-700" style={{ width: `${f.pct}%`, background: i === 0 ? "hsl(43 100% 50%)" : i === 1 ? "hsl(43 100% 65%)" : "hsl(142 70% 45%)" }} />
@@ -1116,7 +1116,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
                   <div key={b.label} className="space-y-0.5">
                     <div className="flex justify-between text-xs">
                       <span className="text-muted-foreground">{b.label}</span>
-                      <span className="text-foreground font-medium">{b.score}/{b.max}</span>
+                      <span className="text-foreground font-medium">{fmt1(b.score)}/{b.max}</span>
                     </div>
                     <Progress value={(b.score / b.max) * 100} className="h-2" />
                   </div>
