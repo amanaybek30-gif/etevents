@@ -3,6 +3,7 @@ import { deduplicateRegistrations } from "@/lib/deduplicateRegistrations";
 import { Users, TrendingUp, UserCheck, UserX, Star, Award, AlertTriangle, BarChart3, Repeat, Zap, Heart, Target } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell, Legend } from "recharts";
 import type { AttendeeProfile, EventOption } from "./types";
+import { fmt1 } from "@/lib/formatMetric";
 import InfoTooltip from "../InfoTooltip";
 import { Progress } from "@/components/ui/progress";
 
@@ -235,7 +236,7 @@ const CRMAnalytics = ({ profiles, events, registrations: rawRegistrations }: Pro
           { label: "Returning", value: analytics.returning.toLocaleString(), icon: Repeat },
           { label: "First-Time", value: analytics.firstTime.toLocaleString(), icon: UserCheck },
           { label: "Frequent (3+)", value: analytics.frequent.toLocaleString(), icon: Star },
-          { label: "Attendance Rate", value: `${analytics.attendanceRate}%`, icon: TrendingUp },
+          { label: "Attendance Rate", value: `${fmt1(analytics.attendanceRate)}%`, icon: TrendingUp },
           { label: "No-Shows", value: analytics.noShows.toLocaleString(), icon: UserX },
         ].map(s => (
           <div key={s.label} className="rounded-xl border border-border bg-card p-3 text-center">
@@ -255,7 +256,7 @@ const CRMAnalytics = ({ profiles, events, registrations: rawRegistrations }: Pro
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-8">
           <div className="flex flex-col items-center">
             <p className={`font-display text-5xl font-black ${analytics.communityStrength >= 70 ? "text-green-400" : analytics.communityStrength >= 40 ? "text-primary" : "text-destructive"}`}>
-              {analytics.communityStrength}
+              {fmt1(analytics.communityStrength)}
             </p>
             <p className="text-sm text-muted-foreground">/100</p>
           </div>
