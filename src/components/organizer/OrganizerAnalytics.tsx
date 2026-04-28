@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import { toast } from "sonner";
+import { fmt1 } from "@/lib/formatMetric";
 
 interface Props {
   userId: string;
@@ -390,18 +391,18 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
       { Metric: "Total Registrations", Value: totalRegs },
       { Metric: "Total Approved", Value: totalApproved },
       { Metric: "Total Checked In", Value: checkedInCount },
-      { Metric: "Attendance Rate", Value: `${attendanceRate}%` },
+      { Metric: "Attendance Rate", Value: `${fmt1(attendanceRate)}%` },
       { Metric: "No-Show Rate", Value: `${noShowRate}%` },
       { Metric: "No-Shows", Value: noShowCount },
-      { Metric: "Conversion Rate", Value: `${conversionRate}%` },
+      { Metric: "Conversion Rate", Value: `${fmt1(conversionRate)}%` },
       { Metric: "Revenue (ETB)", Value: revenue },
       { Metric: "Total Events", Value: totalEvents },
       { Metric: "Avg Registrations/Event", Value: avgRegPerEvent },
       ...(isAdvanced ? [
         { Metric: "Peak Arrival Time", Value: peakHour },
-        { Metric: "Returning Attendees", Value: `${returningPct}%` },
-        { Metric: "First-Time Attendees", Value: `${firstTimePct}%` },
-        { Metric: "Event Performance Score", Value: `${performanceScore}/100` },
+        { Metric: "Returning Attendees", Value: `${fmt1(returningPct)}%` },
+        { Metric: "First-Time Attendees", Value: `${fmt1(firstTimePct)}%` },
+        { Metric: "Event Performance Score", Value: `${fmt1(performanceScore)}/100` },
       ] : []),
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryRows), "Summary");
@@ -457,7 +458,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
       `Avg Registrations/Event: ${avgRegPerEvent}`,
     ];
     if (isAdvanced) {
-      lines.push(`Peak Arrival Time: ${peakHour}`, `Returning Attendees: ${returningPct}%`, `First-Time Attendees: ${firstTimePct}%`, `Event Performance Score: ${performanceScore}/100`);
+      lines.push(`Peak Arrival Time: ${peakHour}`, `Returning Attendees: ${fmt1(returningPct)}%`, `First-Time Attendees: ${fmt1(firstTimePct)}%`, `Event Performance Score: ${performanceScore}/100`);
     }
     doc.setFontSize(11);
     lines.forEach(l => { doc.text(l, 20, y); y += 7; });
@@ -536,7 +537,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
     drawRow("Total Registrations", totalRegs.toString(), true);
     drawRow("Total Approved", totalApproved.toString());
     drawRow("Total Checked In", checkedInCount.toString());
-    drawRow("Attendance Rate", `${attendanceRate}%`, true);
+    drawRow("Attendance Rate", `${fmt1(attendanceRate)}%`, true);
     drawRow("No-Show Rate", `${noShowRate}%`);
     drawRow("No-Shows", noShowCount.toString());
     drawRow("Remaining Capacity", remainingCapacity !== null ? remainingCapacity.toLocaleString() : "N/A");
@@ -547,7 +548,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
     drawSectionTitle("2. Event Summary");
     drawRow("Total Events", totalEvents.toString());
     drawRow("Avg Registrations/Event", avgRegPerEvent.toString());
-    drawRow("Conversion Rate", `${conversionRate}%`);
+    drawRow("Conversion Rate", `${fmt1(conversionRate)}%`);
     y += 4;
 
     // 3. Registration Funnel
@@ -557,8 +558,8 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
 
     // 4. Returning vs New Attendees
     drawSectionTitle("4. Attendee Retention");
-    drawRow("Returning Attendees", `${returningPct}%`, true);
-    drawRow("First-Time Attendees", `${firstTimePct}%`);
+    drawRow("Returning Attendees", `${fmt1(returningPct)}%`, true);
+    drawRow("First-Time Attendees", `${fmt1(firstTimePct)}%`);
     y += 4;
 
     // 5. No-Show Analysis
@@ -589,7 +590,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
     if (sourceData.length > 0) {
       drawSectionTitle("7. Registration Source Tracking");
       sourceData.forEach(s => {
-        const pct = totalRegs > 0 ? ((s.value / totalRegs) * 100) : 0;
+        const pct = Number(fmt1(totalRegs > 0 ? ((s.value / totalRegs) * 100) : 0));
         drawRow(s.name, `${s.value} (${pct}%)`);
       });
       y += 4;
@@ -663,7 +664,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
 
     // 15. Performance Score
     drawSectionTitle("15. Event Performance Score");
-    drawRow("Overall Score", `${performanceScore}/100`, true);
+    drawRow("Overall Score", `${fmt1(performanceScore)}/100`, true);
     drawSeparator();
     performanceBreakdown.forEach(b => drawRow(`  ${b.label}`, `${b.score}/${b.max}`));
 
@@ -748,7 +749,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
           {[
             { label: "Registrations", value: totalRegs, icon: Users },
             { label: "Checked-in", value: checkedInCount, icon: UserCheck },
-            { label: "Attendance Rate", value: `${attendanceRate}%`, icon: TrendingUp },
+            { label: "Attendance Rate", value: `${fmt1(attendanceRate)}%`, icon: TrendingUp },
             { label: "No-Show Rate", value: `${noShowRate}%`, icon: EyeOff },
             { label: "Remaining Capacity", value: remainingCapacity !== null ? remainingCapacity.toLocaleString() : "—", icon: Shield },
           ].map(s => (
@@ -767,7 +768,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
           { label: "Total Events", value: totalEvents },
           { label: "Revenue (ETB)", value: revenue.toLocaleString() },
           { label: "Avg/Event", value: avgRegPerEvent },
-          { label: "Conversion Rate", value: `${conversionRate}%` },
+          { label: "Conversion Rate", value: `${fmt1(conversionRate)}%` },
         ].map(s => (
           <div key={s.label} className="rounded-xl border border-border bg-card p-3 text-center">
             <p className="font-display text-lg font-bold text-foreground">{s.value}</p>
@@ -884,7 +885,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-bold text-foreground">{s.value}</span>
-                        <span className="text-xs text-muted-foreground">({totalViews > 0 ? ((s.value / totalViews) * 100) : 0}%)</span>
+                        <span className="text-xs text-muted-foreground">({fmt1(totalViews > 0 ? ((s.value / totalViews) * 100) : 0)}%)</span>
                       </div>
                     </div>
                   ))}
@@ -922,12 +923,12 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-xl border border-border bg-card p-4 text-center">
               <Eye className="mx-auto h-5 w-5 text-green-400 mb-1" />
-              <p className="font-display text-2xl font-bold text-green-400">{returningPct}%</p>
+              <p className="font-display text-2xl font-bold text-green-400">{fmt1(returningPct)}%</p>
               <p className="text-xs text-muted-foreground">Returning Attendees</p>
             </div>
             <div className="rounded-xl border border-border bg-card p-4 text-center">
               <Users className="mx-auto h-5 w-5 text-primary mb-1" />
-              <p className="font-display text-2xl font-bold text-primary">{firstTimePct}%</p>
+              <p className="font-display text-2xl font-bold text-primary">{fmt1(firstTimePct)}%</p>
               <p className="text-xs text-muted-foreground">First-Time Attendees</p>
             </div>
             <div className="rounded-xl border border-border bg-card p-4 text-center">
@@ -974,7 +975,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-bold text-foreground">{s.value}</span>
-                        <span className="text-xs text-muted-foreground">({totalRegs > 0 ? ((s.value / totalRegs) * 100) : 0}%)</span>
+                        <span className="text-xs text-muted-foreground">({fmt1(totalRegs > 0 ? ((s.value / totalRegs) * 100) : 0)}%)</span>
                       </div>
                     </div>
                   ))}
@@ -1107,7 +1108,7 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
             </h3>
             <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-8">
               <div className="flex flex-col items-center">
-                <p className={`font-display text-5xl font-black ${getScoreColor(performanceScore)}`}>{performanceScore}</p>
+                <p className={`font-display text-5xl font-black ${getScoreColor(performanceScore)}`}>{fmt1(performanceScore)}</p>
                 <p className="text-sm text-muted-foreground">/100</p>
               </div>
               <div className="flex-1 space-y-2 w-full">
