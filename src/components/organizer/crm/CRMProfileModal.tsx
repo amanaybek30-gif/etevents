@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { AttendeeProfile } from "./types";
+import { fmt1 } from "@/lib/formatMetric";
 
 interface Props {
   profile: AttendeeProfile;
@@ -113,7 +114,7 @@ const CRMProfileModal = ({ profile, userId, onClose, onUpdate }: Props) => {
           </div>
           <div className="rounded-xl border border-border bg-secondary p-4 text-center space-y-2">
             <Star className="mx-auto h-5 w-5 text-primary" />
-            <p className={`font-display text-3xl font-black ${getScoreColor(profile.engagementScore)}`}>{profile.engagementScore}</p>
+            <p className={`font-display text-3xl font-black ${getScoreColor(profile.engagementScore)}`}>{fmt1(profile.engagementScore)}</p>
             <p className="text-xs text-muted-foreground">Engagement Score</p>
             <p className={`text-xs font-semibold ${getScoreColor(profile.engagementScore)}`}>{getScoreLabel(profile.engagementScore)}</p>
             <Progress value={profile.engagementScore} className="h-1.5" />
@@ -131,7 +132,7 @@ const CRMProfileModal = ({ profile, userId, onClose, onUpdate }: Props) => {
             <p className="text-xs text-muted-foreground">Attended</p>
           </div>
           <div className="rounded-lg border border-border bg-secondary p-3 text-center">
-            <p className="text-xl font-bold text-primary">{profile.attendanceRate}%</p>
+            <p className="text-xl font-bold text-primary">{fmt1(profile.attendanceRate)}%</p>
             <p className="text-xs text-muted-foreground">Rate</p>
           </div>
         </div>
