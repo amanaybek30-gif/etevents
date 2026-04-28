@@ -10,6 +10,7 @@ import {
   WifiOff, Wifi, Loader2, Shield, Smartphone
 } from "lucide-react";
 import SEO from "@/components/SEO";
+import { fmt1 } from "@/lib/formatMetric";
 
 interface OfflineCheckin {
   ticketId: string;
@@ -441,7 +442,7 @@ const StaffCheckin = () => {
             <p className="text-[10px] text-muted-foreground">My Check-ins</p>
           </div>
           <div className="rounded-lg border border-border bg-card p-3 text-center">
-            <p className="font-display text-xl font-bold text-primary">{attendanceRate}%</p>
+            <p className="font-display text-xl font-bold text-primary">{fmt1(attendanceRate)}%</p>
             <p className="text-[10px] text-muted-foreground">Attendance</p>
           </div>
         </div>
