@@ -110,12 +110,12 @@ const AdminAnalytics = () => {
     setTotalPending(pending);
     setTotalRejected(rejected);
     setTotalCheckedIn(checkedIn);
-    setPlatformAttendanceRate(approved > 0 ? Math.round((checkedIn / approved) * 100) : 0);
-    setPlatformNoShowRate(approved > 0 ? Math.round((noShows / approved) * 100) : 0);
+    setPlatformAttendanceRate(approved > 0 ? ((checkedIn / approved) * 100) : 0);
+    setPlatformNoShowRate(approved > 0 ? ((noShows / approved) * 100) : 0);
     setPublishedEvents(events.filter(e => e.is_published).length);
     setDraftEvents(events.filter(e => !e.is_published).length);
-    setAvgRegsPerEvent(events.length > 0 ? Math.round(regs.length / events.length) : 0);
-    setAvgRegsPerOrganizer(orgs.length > 0 ? Math.round(regs.length / orgs.length) : 0);
+    setAvgRegsPerEvent(events.length > 0 ? (regs.length / events.length) : 0);
+    setAvgRegsPerOrganizer(orgs.length > 0 ? (regs.length / orgs.length) : 0);
 
     // Revenue
     let rev = 0;
@@ -251,17 +251,17 @@ const AdminAnalytics = () => {
     regs.forEach(r => { emailCounts[r.email] = (emailCounts[r.email] || 0) + 1; });
     const uniqueEmails = Object.keys(emailCounts).length;
     const returning = Object.values(emailCounts).filter(c => c > 1).length;
-    setReturningPct(uniqueEmails > 0 ? Math.round((returning / uniqueEmails) * 100) : 0);
-    setFirstTimePct(uniqueEmails > 0 ? 100 - Math.round((returning / uniqueEmails) * 100) : 0);
+    setReturningPct(uniqueEmails > 0 ? ((returning / uniqueEmails) * 100) : 0);
+    setFirstTimePct(uniqueEmails > 0 ? 100 - ((returning / uniqueEmails) * 100) : 0);
 
     // Platform Performance Score
-    const attScore = approved > 0 ? Math.min(Math.round(((checkedIn / approved) * 100) * 0.25), 25) : 0;
-    const growthScore = Math.min(Math.round((regs.length / Math.max(events.length, 1)) * 0.2), 20);
-    const convScore = regs.length > 0 ? Math.min(Math.round(((approved / regs.length) * 100) * 0.2), 20) : 0;
+    const attScore = approved > 0 ? Math.min((((checkedIn / approved) * 100) * 0.25), 25) : 0;
+    const growthScore = Math.min(((regs.length / Math.max(events.length, 1)) * 0.2), 20);
+    const convScore = regs.length > 0 ? Math.min((((approved / regs.length) * 100) * 0.2), 20) : 0;
     const orgGrowthScore = Math.min(orgs.length * 2, 15);
     const eventDiversityScore = Math.min(Object.keys(catCounts).length * 2, 10);
-    const retScore = Math.min(Math.round((returning / Math.max(uniqueEmails, 1)) * 100 * 0.1), 10);
-    const total = Math.round(attScore + growthScore + convScore + orgGrowthScore + eventDiversityScore + retScore);
+    const retScore = Math.min(((returning / Math.max(uniqueEmails, 1)) * 100 * 0.1), 10);
+    const total = (attScore + growthScore + convScore + orgGrowthScore + eventDiversityScore + retScore);
     setPerformanceScore(Math.min(total, 100));
     setPerformanceBreakdown([
       { label: "Attendance Rate", score: attScore, max: 25 },
@@ -423,7 +423,7 @@ const AdminAnalytics = () => {
 
     drawSection("5. Registration Sources");
     sourceData.forEach(s => {
-      const pct = totalRegs > 0 ? Math.round((s.value / totalRegs) * 100) : 0;
+      const pct = totalRegs > 0 ? ((s.value / totalRegs) * 100) : 0;
       drawRow(s.name, `${s.value} (${pct}%)`);
     });
     y += 4;
@@ -648,7 +648,7 @@ const AdminAnalytics = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-bold text-foreground">{s.value}</span>
-                    <span className="text-xs text-muted-foreground">({totalRegs > 0 ? Math.round((s.value / totalRegs) * 100) : 0}%)</span>
+                    <span className="text-xs text-muted-foreground">({totalRegs > 0 ? ((s.value / totalRegs) * 100) : 0}%)</span>
                   </div>
                 </div>
               ))}
