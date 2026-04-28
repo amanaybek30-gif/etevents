@@ -1083,7 +1083,7 @@ async function handleOrgAnalytics(
       .select("id", { count: "exact", head: true })
       .eq("event_id", event.id);
 
-    const convRate = (viewCount || 0) > 0 ? Math.round(((regCount || 0) / (viewCount || 1)) * 100) : 0;
+    const convRate = (viewCount || 0) > 0 ? (((regCount || 0) / (viewCount || 1)) * 100) : 0;
 
     text += `📌 *${event.title}*\n  👀 Views: ${viewCount || 0} | 📝 Registrations: ${regCount || 0} | 📈 Conv: ${convRate}%\n\n`;
   }
