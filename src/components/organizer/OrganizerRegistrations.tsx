@@ -427,7 +427,15 @@ const OrganizerRegistrations = ({ userId, searchQuery, userPlan = "free", subscr
                     return (
                       <div key={key}>
                         <span className="font-medium text-foreground">{label}:</span>{" "}
-                        <span className="text-muted-foreground">{Array.isArray(val) ? val.join(", ") : String(val)}</span>
+                        {Array.isArray(val) && val.length > 0 && typeof val[0] === "object" && val[0] !== null && "url" in (val[0] as object) ? (
+                          <span className="inline-flex flex-wrap gap-2">
+                            {(val as Array<{ name: string; url: string }>).map((f, i) => (
+                              <a key={i} href={f.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-xs">{f.name}</a>
+                            ))}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">{Array.isArray(val) ? (val as unknown[]).join(", ") : String(val)}</span>
+                        )}
                       </div>
                     );
                   })}
@@ -529,7 +537,15 @@ const OrganizerRegistrations = ({ userId, searchQuery, userPlan = "free", subscr
                         return (
                           <div key={key}>
                             <span className="font-semibold text-foreground">{label}:</span>{" "}
-                            <span className="text-muted-foreground">{Array.isArray(val) ? val.join(", ") : String(val)}</span>
+                            {Array.isArray(val) && val.length > 0 && typeof val[0] === "object" && val[0] !== null && "url" in (val[0] as object) ? (
+                              <span className="inline-flex flex-wrap gap-2">
+                                {(val as Array<{ name: string; url: string }>).map((f, i) => (
+                                  <a key={i} href={f.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{f.name}</a>
+                                ))}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">{Array.isArray(val) ? (val as unknown[]).join(", ") : String(val)}</span>
+                            )}
                           </div>
                         );
                       })}
