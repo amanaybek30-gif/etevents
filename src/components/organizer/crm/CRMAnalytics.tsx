@@ -3,7 +3,7 @@ import { deduplicateRegistrations } from "@/lib/deduplicateRegistrations";
 import { Users, TrendingUp, UserCheck, UserX, Star, Award, AlertTriangle, BarChart3, Repeat, Zap, Heart, Target } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell, Legend } from "recharts";
 import type { AttendeeProfile, EventOption } from "./types";
-import { fmt1 } from "@/lib/formatMetric";
+import { fmt1, round1 } from "@/lib/formatMetric";
 import InfoTooltip from "../InfoTooltip";
 import { Progress } from "@/components/ui/progress";
 
@@ -25,12 +25,12 @@ const CRMAnalytics = ({ profiles, events, registrations: rawRegistrations }: Pro
     const returning = profiles.filter(p => p.totalRegistered > 1).length;
     const firstTime = total - returning;
     const frequent = profiles.filter(p => p.totalAttended >= 3).length;
-    const avgRate = total > 0 ? (profiles.reduce((s, p) => s + p.attendanceRate, 0) / total) : 0;
-    const avgEngagement = total > 0 ? (profiles.reduce((s, p) => s + p.engagementScore, 0) / total) : 0;
+    const avgRate = round1(total > 0 ? (profiles.reduce((s, p) => s + p.attendanceRate, 0) / total) : 0);
+    const avgEngagement = round1(total > 0 ? (profiles.reduce((s, p) => s + p.engagementScore, 0) / total) : 0);
     const totalRegistrations = registrations.length;
     const totalCheckedIn = registrations.filter(r => r.checked_in).length;
     const totalApproved = registrations.filter(r => r.status === "approved").length;
-    const attendanceRate = totalApproved > 0 ? ((totalCheckedIn / totalApproved) * 100) : 0;
+    const attendanceRate = round1(totalApproved > 0 ? ((totalCheckedIn / totalApproved) * 100) : 0);
     const noShows = profiles.filter(p => p.totalRegistered > 0 && p.totalAttended === 0).length;
 
     // Registration timeline (14 days)
@@ -84,14 +84,14 @@ const CRMAnalytics = ({ profiles, events, registrations: rawRegistrations }: Pro
           name: ev.title.length > 20 ? ev.title.slice(0, 18) + "…" : ev.title,
           registered: evRegs.length,
           attended: evChecked,
-          rate: evApproved > 0 ? ((evChecked / evApproved) * 100) : 0,
+          rate: round1(evApproved > 0 ? ((evChecked / evApproved) * 100) : 0),
         };
       });
       const prev = eventCompare[eventCompare.length - 2];
       const current = eventCompare[eventCompare.length - 1];
       if (prev && current && prev.registered > 0) {
         audienceGrowth = current.registered - prev.registered;
-        audienceGrowthPct = ((audienceGrowth / prev.registered) * 100);
+        audienceGrowthPct = round1((audienceGrowth / prev.registered) * 100);
       }
     }
 
@@ -107,7 +107,7 @@ const CRMAnalytics = ({ profiles, events, registrations: rawRegistrations }: Pro
       );
       const latestRegs = registrations.filter(r => r.event_id === latestEvent.id);
       returningCount = latestRegs.filter(r => previousEmails.has(r.email.toLowerCase())).length;
-      returningRate = latestRegs.length > 0 ? ((returningCount / latestRegs.length) * 100) : 0;
+      returningRate = round1(latestRegs.length > 0 ? ((returningCount / latestRegs.length) * 100) : 0);
     }
 
     // Engagement trend (requires ≥ 3 events)
@@ -120,16 +120,16 @@ const CRMAnalytics = ({ profiles, events, registrations: rawRegistrations }: Pro
         const evChecked = evRegs.filter(r => r.checked_in).length;
         return {
           event: ev.title.length > 15 ? ev.title.slice(0, 13) + "…" : ev.title,
-          rate: evApproved > 0 ? ((evChecked / evApproved) * 100) : 0,
+          rate: round1(evApproved > 0 ? ((evChecked / evApproved) * 100) : 0),
         };
       });
     }
 
     // Community Strength Score
-    const retScore = Math.min(((returning / Math.max(total, 1)) * 40), 40);
-    const attRateScore = Math.min((attendanceRate * 0.35), 35);
-    const repeatScore = Math.min(((frequent / Math.max(total, 1)) * 25), 25);
-    const communityStrength = Math.min(retScore + attRateScore + repeatScore, 100);
+    const retScore = round1(Math.min(((returning / Math.max(total, 1)) * 40), 40));
+    const attRateScore = round1(Math.min((attendanceRate * 0.35), 35));
+    const repeatScore = round1(Math.min(((frequent / Math.max(total, 1)) * 25), 25));
+    const communityStrength = round1(Math.min(retScore + attRateScore + repeatScore, 100));
 
     // Smart insights
     const insights: string[] = [];
@@ -138,11 +138,11 @@ const CRMAnalytics = ({ profiles, events, registrations: rawRegistrations }: Pro
       else if (returning > firstTime) insights.push("Your audience has a strong returning base — great community building!");
       
       if (eventCount >= 2 && returningRate > 0) {
-        insights.push(`${returningRate}% of attendees at your latest event previously attended your past events.`);
+        insights.push(`${fmt1(returningRate)}% of attendees at your latest event previously attended your past events.`);
       }
       if (eventCount >= 2 && audienceGrowthPct !== 0) {
-        if (audienceGrowthPct > 0) insights.push(`Your event registrations increased by ${audienceGrowthPct}% compared to your previous event.`);
-        else insights.push(`Your event registrations decreased by ${Math.abs(audienceGrowthPct)}% compared to your previous event.`);
+        if (audienceGrowthPct > 0) insights.push(`Your event registrations increased by ${fmt1(audienceGrowthPct)}% compared to your previous event.`);
+        else insights.push(`Your event registrations decreased by ${fmt1(Math.abs(audienceGrowthPct))}% compared to your previous event.`);
       }
       if (attendanceRate > 0) {
         if (eventCount >= 2 && eventCompare.length >= 2) {
@@ -269,7 +269,7 @@ const CRMAnalytics = ({ profiles, events, registrations: rawRegistrations }: Pro
               <div key={b.label} className="space-y-0.5">
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">{b.label}</span>
-                  <span className="text-foreground font-medium">{b.score}/{b.max}</span>
+                  <span className="text-foreground font-medium">{fmt1(b.score)}/{b.max}</span>
                 </div>
                 <Progress value={(b.score / b.max) * 100} className="h-2" />
               </div>
@@ -363,7 +363,7 @@ const CRMAnalytics = ({ profiles, events, registrations: rawRegistrations }: Pro
               <InfoTooltip title="Returning Attendee Analysis" description="Attendees who attended or registered for at least one previous event by the same organizer. Only available after hosting 2+ events." />
             </h4>
             <div className="text-center">
-              <p className="font-display text-3xl font-bold text-primary">{analytics.returningRate}%</p>
+              <p className="font-display text-3xl font-bold text-primary">{fmt1(analytics.returningRate)}%</p>
               <p className="text-xs text-muted-foreground">of latest event came from past events</p>
               <p className="text-sm text-foreground mt-1">{analytics.returningCount} returning attendees</p>
             </div>
@@ -391,7 +391,7 @@ const CRMAnalytics = ({ profiles, events, registrations: rawRegistrations }: Pro
             </h4>
             <div className="text-center">
               <p className={`font-display text-3xl font-bold ${analytics.audienceGrowthPct >= 0 ? "text-green-400" : "text-destructive"}`}>
-                {analytics.audienceGrowthPct >= 0 ? "+" : ""}{analytics.audienceGrowthPct}%
+                {analytics.audienceGrowthPct >= 0 ? "+" : ""}{fmt1(analytics.audienceGrowthPct)}%
               </p>
               <p className="text-xs text-muted-foreground">vs previous event</p>
               <p className="text-sm text-foreground mt-1">{analytics.audienceGrowth >= 0 ? "+" : ""}{analytics.audienceGrowth} registrations</p>
@@ -466,7 +466,7 @@ const CRMAnalytics = ({ profiles, events, registrations: rawRegistrations }: Pro
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary text-[10px] font-bold shrink-0">{i + 1}</span>
                 <span className="text-sm text-foreground truncate">{p.full_name}</span>
               </div>
-              <span className="text-xs font-semibold text-primary shrink-0 ml-2">{p.engagementScore}/100</span>
+              <span className="text-xs font-semibold text-primary shrink-0 ml-2">{fmt1(p.engagementScore)}/100</span>
             </div>
           ))}
           {analytics.topAttendees.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No data</p>}
