@@ -19,8 +19,8 @@ interface Props { userId: string; }
 
 function computeEngagementScore(p: { totalRegistered: number; totalAttended: number; attendanceRate: number }): number {
   const freqScore = Math.min(p.totalAttended * 15, 40);
-  const rateScore = Math.round(p.attendanceRate * 0.4);
-  const consistencyScore = p.totalRegistered > 0 ? Math.min(Math.round((p.totalAttended / p.totalRegistered) * 20), 20) : 0;
+  const rateScore = (p.attendanceRate * 0.4);
+  const consistencyScore = p.totalRegistered > 0 ? Math.min(((p.totalAttended / p.totalRegistered) * 20), 20) : 0;
   return Math.min(freqScore + rateScore + consistencyScore, 100);
 }
 
@@ -168,7 +168,7 @@ const AttendeeIntelligence = ({ userId }: Props) => {
       return {
         ...p,
         totalRegistered: distinctEvents, // Count distinct events, not total registrations
-        attendanceRate: distinctEvents > 0 ? Math.round((p.totalAttended / distinctEvents) * 100) : 0,
+        attendanceRate: distinctEvents > 0 ? ((p.totalAttended / distinctEvents) * 100) : 0,
         engagementScore: computeEngagementScore({ ...p, totalRegistered: distinctEvents }),
       };
     }).sort((a, b) => b.engagementScore - a.engagementScore);
@@ -200,9 +200,9 @@ const AttendeeIntelligence = ({ userId }: Props) => {
     const returning = profiles.filter(p => p.totalRegistered > 1).length;
     return {
       totalUnique: total,
-      avgAttendance: total > 0 ? Math.round(totalRate / total) : 0,
-      returningPct: total > 0 ? Math.round((returning / total) * 100) : 0,
-      firstTimePct: total > 0 ? 100 - Math.round((returning / total) * 100) : 0,
+      avgAttendance: total > 0 ? (totalRate / total) : 0,
+      returningPct: total > 0 ? ((returning / total) * 100) : 0,
+      firstTimePct: total > 0 ? 100 - ((returning / total) * 100) : 0,
     };
   }, [profiles]);
 
