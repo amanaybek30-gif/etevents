@@ -10,6 +10,7 @@ import {
   Clock, TrendingUp, AlertCircle, Upload
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { fmt1 } from "@/lib/formatMetric";
 import * as XLSX from "xlsx";
 
 interface Props {
@@ -312,7 +313,7 @@ const StaffCheckinDashboard = ({ userId, userPlan = "free", subscriptionEnabled 
           <p className="text-xs text-muted-foreground">Registered</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4 text-center">
-          <p className="font-display text-2xl font-bold text-primary">{attendanceRate}%</p>
+          <p className="font-display text-2xl font-bold text-primary">{fmt1(attendanceRate)}%</p>
           <p className="text-xs text-muted-foreground">Attendance Rate</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4 text-center">
