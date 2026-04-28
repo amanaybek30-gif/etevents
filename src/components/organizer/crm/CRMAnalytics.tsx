@@ -24,12 +24,12 @@ const CRMAnalytics = ({ profiles, events, registrations: rawRegistrations }: Pro
     const returning = profiles.filter(p => p.totalRegistered > 1).length;
     const firstTime = total - returning;
     const frequent = profiles.filter(p => p.totalAttended >= 3).length;
-    const avgRate = total > 0 ? Math.round(profiles.reduce((s, p) => s + p.attendanceRate, 0) / total) : 0;
-    const avgEngagement = total > 0 ? Math.round(profiles.reduce((s, p) => s + p.engagementScore, 0) / total) : 0;
+    const avgRate = total > 0 ? (profiles.reduce((s, p) => s + p.attendanceRate, 0) / total) : 0;
+    const avgEngagement = total > 0 ? (profiles.reduce((s, p) => s + p.engagementScore, 0) / total) : 0;
     const totalRegistrations = registrations.length;
     const totalCheckedIn = registrations.filter(r => r.checked_in).length;
     const totalApproved = registrations.filter(r => r.status === "approved").length;
-    const attendanceRate = totalApproved > 0 ? Math.round((totalCheckedIn / totalApproved) * 100) : 0;
+    const attendanceRate = totalApproved > 0 ? ((totalCheckedIn / totalApproved) * 100) : 0;
     const noShows = profiles.filter(p => p.totalRegistered > 0 && p.totalAttended === 0).length;
 
     // Registration timeline (14 days)
@@ -83,14 +83,14 @@ const CRMAnalytics = ({ profiles, events, registrations: rawRegistrations }: Pro
           name: ev.title.length > 20 ? ev.title.slice(0, 18) + "…" : ev.title,
           registered: evRegs.length,
           attended: evChecked,
-          rate: evApproved > 0 ? Math.round((evChecked / evApproved) * 100) : 0,
+          rate: evApproved > 0 ? ((evChecked / evApproved) * 100) : 0,
         };
       });
       const prev = eventCompare[eventCompare.length - 2];
       const current = eventCompare[eventCompare.length - 1];
       if (prev && current && prev.registered > 0) {
         audienceGrowth = current.registered - prev.registered;
-        audienceGrowthPct = Math.round((audienceGrowth / prev.registered) * 100);
+        audienceGrowthPct = ((audienceGrowth / prev.registered) * 100);
       }
     }
 
@@ -106,7 +106,7 @@ const CRMAnalytics = ({ profiles, events, registrations: rawRegistrations }: Pro
       );
       const latestRegs = registrations.filter(r => r.event_id === latestEvent.id);
       returningCount = latestRegs.filter(r => previousEmails.has(r.email.toLowerCase())).length;
-      returningRate = latestRegs.length > 0 ? Math.round((returningCount / latestRegs.length) * 100) : 0;
+      returningRate = latestRegs.length > 0 ? ((returningCount / latestRegs.length) * 100) : 0;
     }
 
     // Engagement trend (requires ≥ 3 events)
@@ -119,15 +119,15 @@ const CRMAnalytics = ({ profiles, events, registrations: rawRegistrations }: Pro
         const evChecked = evRegs.filter(r => r.checked_in).length;
         return {
           event: ev.title.length > 15 ? ev.title.slice(0, 13) + "…" : ev.title,
-          rate: evApproved > 0 ? Math.round((evChecked / evApproved) * 100) : 0,
+          rate: evApproved > 0 ? ((evChecked / evApproved) * 100) : 0,
         };
       });
     }
 
     // Community Strength Score
-    const retScore = Math.min(Math.round((returning / Math.max(total, 1)) * 40), 40);
-    const attRateScore = Math.min(Math.round(attendanceRate * 0.35), 35);
-    const repeatScore = Math.min(Math.round((frequent / Math.max(total, 1)) * 25), 25);
+    const retScore = Math.min(((returning / Math.max(total, 1)) * 40), 40);
+    const attRateScore = Math.min((attendanceRate * 0.35), 35);
+    const repeatScore = Math.min(((frequent / Math.max(total, 1)) * 25), 25);
     const communityStrength = Math.min(retScore + attRateScore + repeatScore, 100);
 
     // Smart insights
