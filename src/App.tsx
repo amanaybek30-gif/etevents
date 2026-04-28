@@ -11,6 +11,7 @@ import EventProfile from "./pages/EventProfile";
 import Events from "./pages/Events";
 import CreateEvent from "./pages/CreateEvent";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import Admin from "./pages/Admin";
 import OrganizerAuth from "./pages/OrganizerAuth";
 import OrganizerDashboard from "./pages/OrganizerDashboard";
@@ -46,7 +47,7 @@ const AnnouncementWrapper = () => {
   if (shouldHide) return null;
 
   return (
-    <div className="fixed top-16 left-0 right-0 z-40">
+    <div className="fixed left-0 right-0 top-11 z-40 md:top-16">
       <AnnouncementBanner />
     </div>
   );
@@ -76,6 +77,7 @@ const App = () => {
             <Route path="/organizer/:id" element={<OrganizerProfile />} />
             <Route path="/create-event" element={<CreateEvent />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/organizer-auth" element={<OrganizerAuth />} />
             <Route path="/organizer" element={<OrganizerDashboard />} />
