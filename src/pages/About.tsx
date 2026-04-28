@@ -100,10 +100,10 @@ const About = () => {
                 <source src={videoUrl} type="video/mp4" />
               </video>
             )}
-            <div className="absolute inset-0 bg-background/30" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/60 to-black/80" />
             <div className="relative p-8 text-center space-y-4">
-              <h2 className="font-display text-2xl font-bold text-foreground drop-shadow-lg">Built by VION Events</h2>
-              <p className="text-muted-foreground max-w-xl mx-auto drop-shadow-md">
+              <h2 className="font-display text-2xl font-bold text-white drop-shadow-lg">Built by VION Events</h2>
+              <p className="text-white/90 max-w-xl mx-auto drop-shadow-md">
                 VION Events is an Ethiopian full event service company dedicated to transforming how events are organized and experienced across the country.
               </p>
               <a
