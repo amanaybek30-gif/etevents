@@ -14,6 +14,7 @@ import CRMProfileModal from "./crm/CRMProfileModal";
 import CRMEmailDialog from "./crm/CRMEmailDialog";
 import CRMSmartLists from "./crm/CRMSmartLists";
 import CRMAnalytics from "./crm/CRMAnalytics";
+import { fmt1 } from "@/lib/formatMetric";
 
 interface Props { userId: string; }
 
@@ -242,7 +243,7 @@ const AttendeeIntelligence = ({ userId }: Props) => {
       Organization: p.organization, "Job Title": p.job_title, City: p.city || "",
       Tags: p.tags.join(", "),
       "Events Registered": p.totalRegistered, "Events Attended": p.totalAttended,
-      "Attendance Rate": `${p.attendanceRate}%`, "Engagement Score": p.engagementScore,
+      "Attendance Rate": `${fmt1(p.attendanceRate)}%`, "Engagement Score": fmt1(p.engagementScore),
       "Last Event": p.lastEvent,
     }));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(contactData), "Contacts");
@@ -267,7 +268,7 @@ const AttendeeIntelligence = ({ userId }: Props) => {
       Organization: p.organization, "Job Title": p.job_title,
       Tags: p.tags.join(", "),
       "Registered": p.totalRegistered, "Attended": p.totalAttended,
-      "Rate %": p.attendanceRate, "Engagement": p.engagementScore,
+      "Rate %": fmt1(p.attendanceRate), "Engagement": fmt1(p.engagementScore),
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
