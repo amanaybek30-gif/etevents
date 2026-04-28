@@ -16,6 +16,7 @@ import InfoTooltip from "@/components/organizer/InfoTooltip";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import { toast } from "sonner";
+import { fmt1 } from "@/lib/formatMetric";
 
 const COLORS = [
   "hsl(43 100% 50%)", "hsl(200 80% 55%)", "hsl(142 70% 45%)",
@@ -295,13 +296,13 @@ const AdminAnalytics = () => {
       { Metric: "Revenue (ETB)", Value: totalRevenue },
       { Metric: "Avg Regs/Event", Value: avgRegsPerEvent },
       { Metric: "Avg Regs/Organizer", Value: avgRegsPerOrganizer },
-      { Metric: "Returning Attendees", Value: `${returningPct}%` },
-      { Metric: "First-Time Attendees", Value: `${firstTimePct}%` },
+      { Metric: "Returning Attendees", Value: `${fmt1(returningPct)}%` },
+      { Metric: "First-Time Attendees", Value: `${fmt1(firstTimePct)}%` },
       { Metric: "Peak Check-in Hour", Value: peakHour },
       { Metric: "Total Vendors", Value: totalVendors },
       { Metric: "Total Surveys", Value: totalSurveys },
       { Metric: "Survey Responses", Value: totalSurveyResponses },
-      { Metric: "Platform Score", Value: `${performanceScore}/100` },
+      { Metric: "Platform Score", Value: `${fmt1(performanceScore)}/100` },
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryRows), "Platform Summary");
 
@@ -417,13 +418,13 @@ const AdminAnalytics = () => {
     y += 4;
 
     drawSection("4. Attendee Retention");
-    drawRow("Returning Attendees", `${returningPct}%`, true);
-    drawRow("First-Time Attendees", `${firstTimePct}%`);
+    drawRow("Returning Attendees", `${fmt1(returningPct)}%`, true);
+    drawRow("First-Time Attendees", `${fmt1(firstTimePct)}%`);
     y += 4;
 
     drawSection("5. Registration Sources");
     sourceData.forEach(s => {
-      const pct = totalRegs > 0 ? ((s.value / totalRegs) * 100) : 0;
+      const pct = Number(fmt1(totalRegs > 0 ? ((s.value / totalRegs) * 100) : 0));
       drawRow(s.name, `${s.value} (${pct}%)`);
     });
     y += 4;
@@ -457,7 +458,7 @@ const AdminAnalytics = () => {
     y += 4;
 
     drawSection("13. Platform Performance Score");
-    drawRow("Overall Score", `${performanceScore}/100`, true);
+    drawRow("Overall Score", `${fmt1(performanceScore)}/100`, true);
     performanceBreakdown.forEach(b => drawRow(`  ${b.label}`, `${b.score}/${b.max}`));
 
     // Footer
@@ -612,12 +613,12 @@ const AdminAnalytics = () => {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-border bg-card p-4 text-center">
           <Eye className="mx-auto h-5 w-5 text-primary mb-1" />
-          <p className="font-display text-2xl font-bold text-primary">{returningPct}%</p>
+          <p className="font-display text-2xl font-bold text-primary">{fmt1(returningPct)}%</p>
           <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">Returning <InfoTooltip title="Returning Attendees" description="Percentage of unique attendees who registered for more than one event across the entire platform." /></p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4 text-center">
           <Users className="mx-auto h-5 w-5 text-primary mb-1" />
-          <p className="font-display text-2xl font-bold text-primary">{firstTimePct}%</p>
+          <p className="font-display text-2xl font-bold text-primary">{fmt1(firstTimePct)}%</p>
           <p className="text-xs text-muted-foreground">First-Time</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4 text-center">
@@ -648,7 +649,7 @@ const AdminAnalytics = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-bold text-foreground">{s.value}</span>
-                    <span className="text-xs text-muted-foreground">({totalRegs > 0 ? ((s.value / totalRegs) * 100) : 0}%)</span>
+                    <span className="text-xs text-muted-foreground">({fmt1(totalRegs > 0 ? ((s.value / totalRegs) * 100) : 0)}%)</span>
                   </div>
                 </div>
               ))}
@@ -829,7 +830,7 @@ const AdminAnalytics = () => {
         </h3>
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-8">
           <div className="flex flex-col items-center">
-            <p className={`font-display text-5xl font-black ${getScoreColor(performanceScore)}`}>{performanceScore}</p>
+            <p className={`font-display text-5xl font-black ${getScoreColor(performanceScore)}`}>{fmt1(performanceScore)}</p>
             <p className="text-sm text-muted-foreground">/100</p>
           </div>
           <div className="flex-1 space-y-2 w-full">
