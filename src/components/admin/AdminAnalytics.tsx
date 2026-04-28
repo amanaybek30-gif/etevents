@@ -16,7 +16,7 @@ import InfoTooltip from "@/components/organizer/InfoTooltip";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import { toast } from "sonner";
-import { fmt1 } from "@/lib/formatMetric";
+import { fmt1, round1 } from "@/lib/formatMetric";
 
 const COLORS = [
   "hsl(43 100% 50%)", "hsl(200 80% 55%)", "hsl(142 70% 45%)",
@@ -111,12 +111,12 @@ const AdminAnalytics = () => {
     setTotalPending(pending);
     setTotalRejected(rejected);
     setTotalCheckedIn(checkedIn);
-    setPlatformAttendanceRate(approved > 0 ? ((checkedIn / approved) * 100) : 0);
-    setPlatformNoShowRate(approved > 0 ? ((noShows / approved) * 100) : 0);
+    setPlatformAttendanceRate(round1(approved > 0 ? ((checkedIn / approved) * 100) : 0));
+    setPlatformNoShowRate(round1(approved > 0 ? ((noShows / approved) * 100) : 0));
     setPublishedEvents(events.filter(e => e.is_published).length);
     setDraftEvents(events.filter(e => !e.is_published).length);
-    setAvgRegsPerEvent(events.length > 0 ? (regs.length / events.length) : 0);
-    setAvgRegsPerOrganizer(orgs.length > 0 ? (regs.length / orgs.length) : 0);
+    setAvgRegsPerEvent(round1(events.length > 0 ? (regs.length / events.length) : 0));
+    setAvgRegsPerOrganizer(round1(orgs.length > 0 ? (regs.length / orgs.length) : 0));
 
     // Revenue
     let rev = 0;
@@ -252,18 +252,18 @@ const AdminAnalytics = () => {
     regs.forEach(r => { emailCounts[r.email] = (emailCounts[r.email] || 0) + 1; });
     const uniqueEmails = Object.keys(emailCounts).length;
     const returning = Object.values(emailCounts).filter(c => c > 1).length;
-    setReturningPct(uniqueEmails > 0 ? ((returning / uniqueEmails) * 100) : 0);
-    setFirstTimePct(uniqueEmails > 0 ? 100 - ((returning / uniqueEmails) * 100) : 0);
+    setReturningPct(round1(uniqueEmails > 0 ? ((returning / uniqueEmails) * 100) : 0));
+    setFirstTimePct(round1(uniqueEmails > 0 ? 100 - ((returning / uniqueEmails) * 100) : 0));
 
     // Platform Performance Score
-    const attScore = approved > 0 ? Math.min((((checkedIn / approved) * 100) * 0.25), 25) : 0;
-    const growthScore = Math.min(((regs.length / Math.max(events.length, 1)) * 0.2), 20);
-    const convScore = regs.length > 0 ? Math.min((((approved / regs.length) * 100) * 0.2), 20) : 0;
-    const orgGrowthScore = Math.min(orgs.length * 2, 15);
-    const eventDiversityScore = Math.min(Object.keys(catCounts).length * 2, 10);
-    const retScore = Math.min(((returning / Math.max(uniqueEmails, 1)) * 100 * 0.1), 10);
+    const attScore = round1(approved > 0 ? Math.min((((checkedIn / approved) * 100) * 0.25), 25) : 0);
+    const growthScore = round1(Math.min(((regs.length / Math.max(events.length, 1)) * 0.2), 20));
+    const convScore = round1(regs.length > 0 ? Math.min((((approved / regs.length) * 100) * 0.2), 20) : 0);
+    const orgGrowthScore = round1(Math.min(orgs.length * 2, 15));
+    const eventDiversityScore = round1(Math.min(Object.keys(catCounts).length * 2, 10));
+    const retScore = round1(Math.min(((returning / Math.max(uniqueEmails, 1)) * 100 * 0.1), 10));
     const total = (attScore + growthScore + convScore + orgGrowthScore + eventDiversityScore + retScore);
-    setPerformanceScore(Math.min(total, 100));
+    setPerformanceScore(round1(Math.min(total, 100)));
     setPerformanceBreakdown([
       { label: "Attendance Rate", score: attScore, max: 25 },
       { label: "Registration Volume", score: growthScore, max: 20 },
@@ -291,11 +291,11 @@ const AdminAnalytics = () => {
       { Metric: "Total Pending", Value: totalPending },
       { Metric: "Total Rejected", Value: totalRejected },
       { Metric: "Total Checked In", Value: totalCheckedIn },
-      { Metric: "Attendance Rate", Value: `${platformAttendanceRate}%` },
-      { Metric: "No-Show Rate", Value: `${platformNoShowRate}%` },
+      { Metric: "Attendance Rate", Value: `${fmt1(platformAttendanceRate)}%` },
+      { Metric: "No-Show Rate", Value: `${fmt1(platformNoShowRate)}%` },
       { Metric: "Revenue (ETB)", Value: totalRevenue },
-      { Metric: "Avg Regs/Event", Value: avgRegsPerEvent },
-      { Metric: "Avg Regs/Organizer", Value: avgRegsPerOrganizer },
+      { Metric: "Avg Regs/Event", Value: fmt1(avgRegsPerEvent) },
+      { Metric: "Avg Regs/Organizer", Value: fmt1(avgRegsPerOrganizer) },
       { Metric: "Returning Attendees", Value: `${fmt1(returningPct)}%` },
       { Metric: "First-Time Attendees", Value: `${fmt1(firstTimePct)}%` },
       { Metric: "Peak Check-in Hour", Value: peakHour },
@@ -387,7 +387,7 @@ const AdminAnalytics = () => {
     doc.text("Admin Report", pageW / 2, 67, { align: "center" });
     doc.setFontSize(12); doc.setTextColor(180, 180, 180); doc.setFont("helvetica", "normal");
     doc.text(`Generated on ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}`, pageW / 2, 85, { align: "center" });
-    doc.text(`Platform Score: ${performanceScore}/100`, pageW / 2, 97, { align: "center" });
+    doc.text(`Platform Score: ${fmt1(performanceScore)}/100`, pageW / 2, 97, { align: "center" });
 
     doc.addPage(); y = margin; doc.setTextColor(50, 50, 50);
 
@@ -407,10 +407,10 @@ const AdminAnalytics = () => {
     drawRow("Total Pending", totalPending.toString());
     drawRow("Total Rejected", totalRejected.toString());
     drawRow("Total Checked In", totalCheckedIn.toString());
-    drawRow("Attendance Rate", `${platformAttendanceRate}%`, true);
-    drawRow("No-Show Rate", `${platformNoShowRate}%`);
-    drawRow("Avg Regs/Event", avgRegsPerEvent.toString());
-    drawRow("Avg Regs/Organizer", avgRegsPerOrganizer.toString());
+    drawRow("Attendance Rate", `${fmt1(platformAttendanceRate)}%`, true);
+    drawRow("No-Show Rate", `${fmt1(platformNoShowRate)}%`);
+    drawRow("Avg Regs/Event", fmt1(avgRegsPerEvent));
+    drawRow("Avg Regs/Organizer", fmt1(avgRegsPerOrganizer));
     y += 4;
 
     drawSection("3. Revenue");
@@ -424,7 +424,7 @@ const AdminAnalytics = () => {
 
     drawSection("5. Registration Sources");
     sourceData.forEach(s => {
-      const pct = Number(fmt1(totalRegs > 0 ? ((s.value / totalRegs) * 100) : 0));
+      const pct = fmt1(totalRegs > 0 ? ((s.value / totalRegs) * 100) : 0);
       drawRow(s.name, `${s.value} (${pct}%)`);
     });
     y += 4;
@@ -459,7 +459,7 @@ const AdminAnalytics = () => {
 
     drawSection("13. Platform Performance Score");
     drawRow("Overall Score", `${fmt1(performanceScore)}/100`, true);
-    performanceBreakdown.forEach(b => drawRow(`  ${b.label}`, `${b.score}/${b.max}`));
+    performanceBreakdown.forEach(b => drawRow(`  ${b.label}`, `${fmt1(b.score)}/${b.max}`));
 
     // Footer
     const totalPages = doc.getNumberOfPages();
@@ -512,7 +512,7 @@ const AdminAnalytics = () => {
             { label: "Events", value: totalEvents, icon: Calendar },
             { label: "Organizers", value: totalOrganizers, icon: UserCheck },
             { label: "Checked In", value: totalCheckedIn.toLocaleString(), icon: Activity },
-            { label: "Attendance Rate", value: `${platformAttendanceRate}%`, icon: TrendingUp },
+            { label: "Attendance Rate", value: `${fmt1(platformAttendanceRate)}%`, icon: TrendingUp },
             { label: "Revenue (ETB)", value: totalRevenue.toLocaleString(), icon: DollarSign },
           ].map(s => (
             <div key={s.label} className="rounded-xl border border-border bg-card p-4 text-center">
@@ -530,11 +530,11 @@ const AdminAnalytics = () => {
           { label: "Approved", value: totalApproved },
           { label: "Pending", value: totalPending },
           { label: "Rejected", value: totalRejected },
-          { label: "No-Show Rate", value: `${platformNoShowRate}%` },
+          { label: "No-Show Rate", value: `${fmt1(platformNoShowRate)}%` },
           { label: "Published", value: publishedEvents },
           { label: "Drafts", value: draftEvents },
-          { label: "Avg/Event", value: avgRegsPerEvent },
-          { label: "Avg/Organizer", value: avgRegsPerOrganizer },
+          { label: "Avg/Event", value: fmt1(avgRegsPerEvent) },
+          { label: "Avg/Organizer", value: fmt1(avgRegsPerOrganizer) },
         ].map(s => (
           <div key={s.label} className="rounded-xl border border-border bg-card p-3 text-center">
             <p className="font-display text-lg font-bold text-foreground">{s.value}</p>
@@ -623,7 +623,7 @@ const AdminAnalytics = () => {
         </div>
         <div className="rounded-xl border border-border bg-card p-4 text-center">
           <UserX className="mx-auto h-5 w-5 text-destructive mb-1" />
-          <p className="font-display text-2xl font-bold text-destructive">{platformNoShowRate}%</p>
+          <p className="font-display text-2xl font-bold text-destructive">{fmt1(platformNoShowRate)}%</p>
           <p className="text-xs text-muted-foreground">No-Show Rate</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4 text-center">
@@ -838,7 +838,7 @@ const AdminAnalytics = () => {
               <div key={b.label} className="space-y-0.5">
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">{b.label}</span>
-                  <span className="text-foreground font-medium">{b.score}/{b.max}</span>
+                  <span className="text-foreground font-medium">{fmt1(b.score)}/{b.max}</span>
                 </div>
                 <Progress value={(b.score / b.max) * 100} className="h-2" />
               </div>
