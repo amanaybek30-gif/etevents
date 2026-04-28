@@ -24,7 +24,11 @@ const QUESTION_TYPES = [
   { value: "multiple_choice", label: "Multiple Choice" },
   { value: "checkbox", label: "Checkbox (Multiple Select)" },
   { value: "dropdown", label: "Dropdown" },
+  { value: "file", label: "File Upload (photo / video / document)" },
 ];
+
+export const ATTENDEE_FILE_MAX_SIZE = 90 * 1024 * 1024; // 90 MB per file
+export const ATTENDEE_FILE_ACCEPT = "image/*,video/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv";
 
 interface BankPaymentInfo { bank: string; otherBank?: string; accountNumber: string; accountName: string; }
 interface MobilePaymentInfo { name: string; phone: string; }
@@ -36,6 +40,7 @@ export interface CustomQuestion {
   type: string;
   required: boolean;
   options?: string[]; // for multiple_choice, checkbox, dropdown
+  maxFiles?: number; // for type === "file"
 }
 
 interface Props {
@@ -558,8 +563,8 @@ const OrganizerCreateEvent = ({ userId, onNavigate, isPaid = true, onRequirePlan
                     <div className="flex-1 space-y-2">
                       <Input value={q.label} onChange={e => updateQuestion(idx, { label: e.target.value })} placeholder="Enter your question..." className="border-border bg-card" />
                       <div className="flex gap-2 items-center">
-                        <Select value={q.type} onValueChange={v => updateQuestion(idx, { type: v, options: needsOptions(v) ? (q.options?.length ? q.options : [""]) : [] })}>
-                          <SelectTrigger className="border-border bg-card h-8 w-[180px]"><SelectValue /></SelectTrigger>
+                        <Select value={q.type} onValueChange={v => updateQuestion(idx, { type: v, options: needsOptions(v) ? (q.options?.length ? q.options : [""]) : [], maxFiles: v === "file" ? (q.maxFiles || 1) : undefined })}>
+                          <SelectTrigger className="border-border bg-card h-8 w-[220px]"><SelectValue /></SelectTrigger>
                           <SelectContent>{QUESTION_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
                         </Select>
                         <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
@@ -577,6 +582,24 @@ const OrganizerCreateEvent = ({ userId, onNavigate, isPaid = true, onRequirePlan
                           <Button type="button" variant="ghost" size="sm" className="h-7 text-xs text-primary" onClick={() => addOption(idx)}>
                             <Plus className="h-3 w-3 mr-1" /> Add Option
                           </Button>
+                        </div>
+                      )}
+                      {q.type === "file" && (
+                        <div className="space-y-2 pl-2 border-l-2 border-primary/20">
+                          <Label className="text-xs text-muted-foreground">Maximum number of files attendees can upload</Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={10}
+                            value={q.maxFiles ?? 1}
+                            onChange={e => {
+                              const n = parseInt(e.target.value, 10);
+                              const safe = isNaN(n) ? 1 : Math.min(10, Math.max(1, n));
+                              updateQuestion(idx, { maxFiles: safe });
+                            }}
+                            className="border-border bg-card h-8 text-xs w-24"
+                          />
+                          <p className="text-[11px] text-muted-foreground">Each file must be under 90 MB. Photos, videos, and documents are accepted.</p>
                         </div>
                       )}
                     </div>
