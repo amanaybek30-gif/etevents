@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, LogIn, Mail, Lock, User, Phone, ArrowRight, Calendar, Search, Sparkles } from "lucide-react";
+import { Loader2, LogIn, Mail, Lock, User, Phone, ArrowRight, Calendar, Search, Sparkles, KeyRound } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
@@ -28,6 +29,9 @@ const Auth = () => {
   const [tosAccepted, setTosAccepted] = useState(false);
   const [showTos, setShowTos] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -156,6 +160,35 @@ const Auth = () => {
     if (!userId) return;
     if (role === "explore") await setupAsAttendee(userId);
     else await setupAsOrganizer(userId);
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) { toast.error("Enter your email"); return; }
+    setForgotLoading(true);
+    try {
+      const { data: banned } = await supabase.from("banned_emails" as any).select("id").eq("email", forgotEmail.trim().toLowerCase()).maybeSingle();
+      if (banned) {
+        toast.error("This account is suspended or removed. Contact admin.");
+        setForgotLoading(false);
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke("send-password-reset-email", {
+        body: {
+          email: forgotEmail.trim().toLowerCase(),
+          redirectTo: `${window.location.origin}/reset-password`,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Password reset link sent! Check your email.");
+      setForgotOpen(false);
+      setForgotEmail("");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send reset link");
+    } finally {
+      setForgotLoading(false);
+    }
   };
 
   if (step === "choose-role") {
@@ -296,7 +329,12 @@ const Auth = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs">Password</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Password</Label>
+                  <button type="button" onClick={() => { setForgotEmail(email); setForgotOpen(true); }} className="text-[11px] text-primary hover:underline">
+                    Forgot password?
+                  </button>
+                </div>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="pl-10 border-border bg-secondary" required />
@@ -313,6 +351,37 @@ const Auth = () => {
           )}
         </div>
       </div>
+
+      <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 border border-primary/30">
+              <KeyRound className="h-5 w-5 text-primary" />
+            </div>
+            <DialogTitle className="text-center font-display">Reset your password</DialogTitle>
+            <DialogDescription className="text-center text-xs">
+              Enter your email and we'll send you a secure link to set a new password.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleForgotPassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-xs">Email</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} placeholder="you@example.com" className="pl-10 border-border bg-secondary" required autoFocus />
+              </div>
+            </div>
+            <DialogFooter className="gap-2 sm:gap-2">
+              <Button type="button" variant="outline" onClick={() => setForgotOpen(false)} disabled={forgotLoading}>Cancel</Button>
+              <Button type="submit" disabled={forgotLoading} className="bg-gradient-gold text-primary-foreground hover:opacity-90">
+                {forgotLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
+                Send Reset Link
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       <Footer />
     </div>
   );
