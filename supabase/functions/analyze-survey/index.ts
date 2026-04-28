@@ -93,7 +93,7 @@ Produce a detailed report with these sections:
 7. AREAS OF IMPROVEMENT - What attendees want improved
 8. STRENGTHS - What attendees appreciated most
 
-Format the output as clean text with clear section headers. Use bullet points and percentages where applicable.`;
+Format the output as clean text with clear section headers. Use bullet points and percentages where applicable. IMPORTANT: All numbers, percentages, rates, and scores must be rounded to exactly ONE decimal place (e.g., 47.4%, not 47% and not 47.3826%).`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("AI service not configured");
