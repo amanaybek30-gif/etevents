@@ -412,7 +412,7 @@ const StaffCheckin = () => {
     );
   }
 
-  const attendanceRate = totalApproved > 0 ? Math.round((checkedInCount / totalApproved) * 100) : 0;
+  const attendanceRate = totalApproved > 0 ? ((checkedInCount / totalApproved) * 100) : 0;
 
   return (
     <div className="min-h-screen bg-background">
