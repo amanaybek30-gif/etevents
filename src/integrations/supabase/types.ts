@@ -1459,6 +1459,7 @@ export type Database = {
           registrations_count: number
         }[]
       }
+      get_organizer_remaining_events: { Args: { uid: string }; Returns: number }
       get_organizer_remaining_slots: {
         Args: { event_uuid: string }
         Returns: number
