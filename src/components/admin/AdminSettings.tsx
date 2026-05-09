@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Save, Settings, CreditCard, Loader2, Trash2 } from "lucide-react";
+import { Save, Settings, CreditCard, Loader2, Trash2, Upload, Video, X } from "lucide-react";
 
 interface Props { adminId: string; }
 
@@ -22,6 +22,8 @@ const AdminSettings = ({ adminId }: Props) => {
   const [loading, setLoading] = useState(true);
   const [savingSub, setSavingSub] = useState(false);
   const [cleaning, setCleaning] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { fetchSettings(); }, []);
 
@@ -36,13 +38,14 @@ const AdminSettings = ({ adminId }: Props) => {
   };
 
   const saveSetting = async (key: string, value: string) => {
-    const { error } = await supabase.from("platform_settings").update({ value, updated_at: new Date().toISOString() }).eq("key", key);
-    if (error) {
+    // First try update
+    const { data, error } = await supabase.from("platform_settings").update({ value, updated_at: new Date().toISOString() }).eq("key", key).select();
+    if (error || !data || data.length === 0) {
+      // Row doesn't exist yet, insert it
       const { error: insertErr } = await supabase.from("platform_settings").insert({ key, value });
-      if (insertErr) { toast.error("Failed to save"); return; }
+      if (insertErr) { toast.error("Failed to save: " + insertErr.message); return; }
     }
     await supabase.from("admin_logs").insert({ admin_id: adminId, action: `updated setting ${key}`, target_type: "setting", target_id: key, details: value });
-    toast.success("Setting saved");
   };
 
   const subscriptionEnabled = settings["subscription_enabled"] === "true";
@@ -83,6 +86,49 @@ const AdminSettings = ({ adminId }: Props) => {
     toast.success("Subscription settings saved");
   };
 
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("video/")) { toast.error("Please select a video file"); return; }
+    if (file.size > 100 * 1024 * 1024) { toast.error("Video must be under 100MB"); return; }
+
+    setUploadingVideo(true);
+    try {
+      const ext = file.name.split(".").pop() || "mp4";
+      const path = `about-video/vion-bg.${ext}`;
+      
+      // Remove old file if exists
+      await supabase.storage.from("section-backgrounds").remove([path]);
+      
+      const { error: uploadErr } = await supabase.storage.from("section-backgrounds").upload(path, file, { upsert: true });
+      if (uploadErr) throw uploadErr;
+
+      const { data: urlData } = supabase.storage.from("section-backgrounds").getPublicUrl(path);
+      const publicUrl = urlData.publicUrl + "?t=" + Date.now();
+
+      // Stage URL locally but don't save to DB yet
+      setSettings(prev => ({ ...prev, about_vion_video_url: publicUrl }));
+      toast.success("Video uploaded! Click Save to apply changes.");
+    } catch (err: any) {
+      toast.error("Upload failed: " + (err.message || "Unknown error"));
+    }
+    setUploadingVideo(false);
+    if (videoInputRef.current) videoInputRef.current.value = "";
+  };
+
+  const saveVideo = async () => {
+    const url = settings["about_vion_video_url"] || "";
+    await saveSetting("about_vion_video_url", url);
+    toast.success("Video saved successfully");
+  };
+
+  const removeVideo = async () => {
+    await saveSetting("about_vion_video_url", "");
+    setSettings(prev => ({ ...prev, about_vion_video_url: "" }));
+    await supabase.storage.from("section-backgrounds").remove(["about-video/vion-bg.mp4"]);
+    toast.success("Video removed");
+  };
+
   const settingFields = [
     { key: "platform_fee_percent", label: "Platform Fee (%)", placeholder: "5" },
     { key: "payment_bank_name", label: "Bank Name", placeholder: "Commercial Bank of Ethiopia" },
@@ -107,7 +153,7 @@ const AdminSettings = ({ adminId }: Props) => {
               <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
                 <CreditCard className="h-4 w-4 text-primary" /> Organizer Subscription
               </h3>
-              <p className="text-xs text-muted-foreground mt-1">When enabled, organizers must pay per event to access the platform</p>
+              <p className="text-xs text-muted-foreground mt-1">When enabled, organizers must pay yearly to access the platform</p>
             </div>
             <Switch checked={subscriptionEnabled} onCheckedChange={toggleSubscription} />
           </div>
@@ -188,6 +234,37 @@ const AdminSettings = ({ adminId }: Props) => {
               }}
             />
           </div>
+        </div>
+        {/* About Page Video */}
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-6 space-y-3">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <Video className="h-4 w-4 text-primary" /> About Page Video
+          </h3>
+          <p className="text-xs text-muted-foreground">Upload a background video for the "Built by VION Events" section on the About page. Max 100MB.</p>
+
+          {settings["about_vion_video_url"] ? (
+            <div className="space-y-2">
+              <video src={settings["about_vion_video_url"]} controls muted className="w-full rounded-lg max-h-40 object-cover" />
+              <div className="flex gap-2 flex-wrap">
+                <Button size="sm" onClick={saveVideo}>
+                  <Save className="mr-1 h-3 w-3" /> Save
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => videoInputRef.current?.click()} disabled={uploadingVideo}>
+                  {uploadingVideo ? <Loader2 className="mr-2 h-3 w-3 animate-spin" /> : <Upload className="mr-2 h-3 w-3" />}
+                  Replace
+                </Button>
+                <Button size="sm" variant="outline" onClick={removeVideo} className="border-destructive/30 text-destructive hover:bg-destructive/10">
+                  <X className="mr-1 h-3 w-3" /> Remove
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button variant="outline" onClick={() => videoInputRef.current?.click()} disabled={uploadingVideo}>
+              {uploadingVideo ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+              {uploadingVideo ? "Uploading..." : "Upload Video"}
+            </Button>
+          )}
+          <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} />
         </div>
 
         {/* Cleanup Orphaned Auth Records */}
