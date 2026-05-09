@@ -15,6 +15,8 @@ import type { SavedPaymentDetails } from "./OrganizerSettings";
 import TicketTiersEditor, { type TicketTier } from "./TicketTiersEditor";
 import VendorPricingEditor, { type VendorPackage } from "./VendorPricingEditor";
 import EventMaterialsEditor, { type EventMaterial } from "./EventMaterialsEditor";
+import PlanLimitReachedDialog from "./PlanLimitReachedDialog";
+import { getRemainingEvents } from "@/lib/registrationLimits";
 
 const CATEGORIES = ["General", "Concert", "Conference", "Cultural", "Technology", "Fashion", "Business", "Sports", "Charity", "Other"];
 const BANKS = ["Commercial Bank of Ethiopia", "Bank of Abyssinia", "Dashen Bank", "Awash Bank", "Other"];
@@ -86,6 +88,8 @@ const OrganizerCreateEvent = ({ userId, onNavigate, isPaid = true, onRequirePlan
   const [eventMaterials, setEventMaterials] = useState<EventMaterial[]>([]);
   const [ticketOnlyMode, setTicketOnlyMode] = useState(false);
   const [registrationFieldsConfig, setRegistrationFieldsConfig] = useState({ full_name: true, email: true, phone: true, attendee_type: true });
+  const [showQuotaDialog, setShowQuotaDialog] = useState(false);
+  const [quotaPlan, setQuotaPlan] = useState<string>("organizer");
 
   // Auto-fill from saved organizer payment settings
   useEffect(() => {
@@ -173,6 +177,15 @@ const OrganizerCreateEvent = ({ userId, onNavigate, isPaid = true, onRequirePlan
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isPaid) { onRequirePlan?.(); return; }
+
+    // Enforce yearly event quota based on plan (Organizer 1, Pro 3, Corporate 7)
+    const quota = await getRemainingEvents(userId);
+    if (quota.remaining <= 0) {
+      setQuotaPlan(quota.plan);
+      setShowQuotaDialog(true);
+      return;
+    }
+
     const isFreeEvent = eventForm.ticket_price.toLowerCase() === "free" || eventForm.ticket_price.trim() === "" || eventForm.ticket_price.toLowerCase() === "at the door";
     if (!isFreeEvent && acceptedPayments.length === 0) { toast.error("Select at least one payment method"); return; }
     setCreating(true);
@@ -265,23 +278,8 @@ const OrganizerCreateEvent = ({ userId, onNavigate, isPaid = true, onRequirePlan
       const { error } = await supabase.from("events").insert([insertData] as any);
       if (error) throw error;
 
-      // Update subscription expiry based on event end date (not for corporate — corporate is strictly time-bound)
-      if (eventForm.date) {
-        const { data: currentProfile } = await supabase.from("organizer_profiles")
-          .select("subscription_expires_at, subscription_plan")
-          .eq("user_id", userId).single();
-        if (currentProfile?.subscription_plan !== "corporate") {
-          const durationDays = parseInt(eventForm.duration) || 1;
-          const eventEndDate = new Date(eventForm.date);
-          eventEndDate.setDate(eventEndDate.getDate() + durationDays);
-          const currentExpiry = currentProfile?.subscription_expires_at ? new Date(currentProfile.subscription_expires_at) : null;
-          if (!currentExpiry || eventEndDate > currentExpiry) {
-            await supabase.from("organizer_profiles")
-              .update({ subscription_expires_at: eventEndDate.toISOString() })
-              .eq("user_id", userId);
-          }
-        }
-      }
+      // Subscription validity is now a fixed 1-year window set on plan approval —
+      // event creation no longer extends or modifies the expiry date.
 
       setCreatedEventLink(`${window.location.origin}/event/${slug}`);
       toast.success("Event published successfully!");
@@ -723,6 +721,12 @@ const OrganizerCreateEvent = ({ userId, onNavigate, isPaid = true, onRequirePlan
           </div>
         </div>
       )}
+      <PlanLimitReachedDialog
+        open={showQuotaDialog}
+        onOpenChange={setShowQuotaDialog}
+        plan={quotaPlan}
+        onNavigateToSubscription={() => { setShowQuotaDialog(false); onRequirePlan?.(); }}
+      />
     </div>
   );
 };
