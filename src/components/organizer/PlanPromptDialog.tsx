@@ -14,17 +14,17 @@ import CustomRequestWizard from "./CustomRequestWizard";
 const PLANS = [
   {
     id: "organizer", name: "Organizer", price: "1,800", priceNum: 1800, icon: Zap, popular: true,
-    features: ["Up to 100 registrations", "QR code check-in", "Basic analytics", "Registration data export", "Email confirmations (up to 100)", "Basic promotion tools"],
+    features: ["Host 1 event per year", "Unlimited registrations", "QR code check-in", "Basic analytics", "Registration data export", "Email confirmations", "Basic promotion tools"],
     notIncluded: ["Survey forms", "Checked-in attendee export", "Advanced analytics", "Multi-device check-in", "Bulk invite past attendees", "Attendee Intelligence (CRM)"],
   },
   {
     id: "pro", name: "Pro Organizer", price: "6,500", priceNum: 6500, icon: Crown,
-    features: ["All Organizer features", "Up to 300 registrations", "Checked-in data export", "Advanced analytics", "Multi-device check-in support", "Bulk invite past attendees (up to 50)", "Survey form (QR code only)", "1 check-in staff support", "Advanced promotion tools"],
+    features: ["All Organizer features", "Host 3 events per year", "Unlimited registrations", "Checked-in data export", "Advanced analytics", "Multi-device check-in support", "Bulk invite past attendees (up to 50)", "Survey form (QR code only)", "1 check-in staff support", "Advanced promotion tools"],
     notIncluded: ["Attendee Intelligence (CRM)", "Survey via email", "Custom integrations"],
   },
   {
     id: "corporate", name: "Corporate", price: "10,500", priceNum: 10500, icon: Building2,
-    features: ["All Pro features", "Unlimited registrations", "Advanced reporting", "Attendee Intelligence (CRM)", "Unlimited past event invites", "Multi-device check-in support", "Registration supporting staff", "Survey (QR + email)", "Advanced promotion tools"],
+    features: ["All Pro features", "Host 7 events per year", "Unlimited registrations", "Advanced reporting", "Attendee Intelligence (CRM)", "Unlimited past event invites", "Multi-device check-in support", "Registration supporting staff", "Survey (QR + email)", "Advanced promotion tools"],
   },
 ];
 
@@ -289,7 +289,7 @@ const PlanPromptDialog = ({ open, onClose, userId }: Props) => {
                       <h3 className="font-display text-lg font-bold text-foreground">{plan.name}</h3>
                       <div>
                         <span className="text-2xl font-bold text-foreground">{plan.price}</span>
-                        <span className="text-xs text-muted-foreground"> ETB / event</span>
+                        <span className="text-xs text-muted-foreground"> ETB / year</span>
                       </div>
                     </div>
                     <ul className="space-y-2">
