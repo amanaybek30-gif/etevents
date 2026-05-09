@@ -1,67 +1,74 @@
 import { supabase } from "@/integrations/supabase/client";
 
-const PLAN_LIMITS: Record<string, number> = {
-  free: 100,
-  organizer: 100,
-  pro: 300,
-  corporate: 999999,
+/**
+ * Plan-based EVENT quotas (per yearly subscription).
+ * Registrations are unlimited for every paid plan.
+ */
+const PLAN_EVENT_LIMITS: Record<string, number> = {
+  free: 0,
+  organizer: 1,
+  pro: 3,
+  corporate: 7,
 };
 
 /**
- * Get remaining registration slots for the organizer of a given event.
- * Uses a security-definer DB function so it works for unauthenticated users too.
+ * Backward compatibility: registrations are now unlimited.
+ * Returns a very large number so legacy callers never block.
  */
-export async function getRemainingSlots(eventId: string): Promise<number> {
-  const { data, error } = await supabase.rpc("get_organizer_remaining_slots", {
-    event_uuid: eventId,
-  });
-  if (error) {
-    console.error("Failed to check registration limit:", error);
-    return 0;
-  }
-  return (data as number) ?? 0;
+export async function getRemainingSlots(_eventId: string): Promise<number> {
+  return 999999;
 }
 
 /**
- * Get remaining slots for an organizer by userId (for authenticated organizer paths).
- * Counts all registrations across all their events.
+ * Backward compatibility for code that asked for remaining "slots" by organizer.
+ * Returns unlimited registrations now.
  */
-export async function getRemainingSlotsByOrganizer(userId: string): Promise<{
+export async function getRemainingSlotsByOrganizer(_userId: string): Promise<{
   remaining: number;
   plan: string;
   total: number;
   limit: number;
 }> {
-  // Get organizer plan
+  return { remaining: 999999, plan: "organizer", total: 0, limit: 999999 };
+}
+
+/**
+ * Returns how many additional events the organizer can still create
+ * within their current 1-year subscription period.
+ */
+export async function getRemainingEvents(userId: string): Promise<{
+  remaining: number;
+  plan: string;
+  used: number;
+  limit: number;
+  expiresAt: string | null;
+}> {
   const { data: prof } = await supabase
     .from("organizer_profiles")
-    .select("subscription_plan")
+    .select("subscription_plan, subscription_paid, subscription_expires_at")
     .eq("user_id", userId)
     .single();
 
   const plan = prof?.subscription_plan || "free";
-  const limit = PLAN_LIMITS[plan] ?? 100;
+  const limit = PLAN_EVENT_LIMITS[plan] ?? 0;
+  const expiresAt = prof?.subscription_expires_at || null;
 
-  // Get all events for this organizer
-  const { data: events } = await supabase
-    .from("events")
-    .select("id")
-    .eq("organizer_id", userId);
-
-  if (!events || events.length === 0) {
-    return { remaining: limit, plan, total: 0, limit };
+  if (!prof?.subscription_paid || !expiresAt || new Date(expiresAt) < new Date()) {
+    return { remaining: 0, plan, used: 0, limit, expiresAt };
   }
 
-  // Count all registrations across all events
+  const periodStart = new Date(new Date(expiresAt).getTime() - 365 * 24 * 60 * 60 * 1000).toISOString();
+
   const { count } = await supabase
-    .from("registrations")
+    .from("events")
     .select("id", { count: "exact", head: true })
-    .in("event_id", events.map((e) => e.id));
+    .eq("organizer_id", userId)
+    .gte("created_at", periodStart);
 
-  const total = count || 0;
-  const remaining = Math.max(limit - total, 0);
+  const used = count || 0;
+  const remaining = Math.max(limit - used, 0);
 
-  return { remaining, plan, total, limit };
+  return { remaining, plan, used, limit, expiresAt };
 }
 
 export function getPlanLabel(plan: string): string {
@@ -74,13 +81,18 @@ export function getPlanLabel(plan: string): string {
   return labels[plan] || plan;
 }
 
+/** Number of events allowed per yearly subscription for a given plan. */
+export function getPlanEventLimit(plan: string): number {
+  return PLAN_EVENT_LIMITS[plan] ?? 0;
+}
+
+/** Backward-compatible alias — now returns the plan's EVENT limit. */
 export function getPlanLimit(plan: string): number {
-  return PLAN_LIMITS[plan] ?? 100;
+  return PLAN_EVENT_LIMITS[plan] ?? 0;
 }
 
 /**
- * Check if organizer's subscription is expired based on their latest event end date.
- * Returns true if expired (all events have ended and subscription_expires_at is in the past).
+ * Check if organizer's subscription is expired.
  */
 export async function isSubscriptionExpired(userId: string): Promise<{
   expired: boolean;
@@ -102,11 +114,8 @@ export async function isSubscriptionExpired(userId: string): Promise<{
     return { expired: false, expiresAt: null, latestEventDate: null };
   }
 
-  const now = new Date();
-  const expiryDate = new Date(expiresAt);
-  const expired = expiryDate < now;
+  const expired = new Date(expiresAt) < new Date();
 
-  // Get the latest event date for context
   const { data: latestEvent } = await supabase
     .from("events")
     .select("date, duration")
@@ -115,9 +124,5 @@ export async function isSubscriptionExpired(userId: string): Promise<{
     .limit(1)
     .single();
 
-  return {
-    expired,
-    expiresAt,
-    latestEventDate: latestEvent?.date || null,
-  };
+  return { expired, expiresAt, latestEventDate: latestEvent?.date || null };
 }
