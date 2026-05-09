@@ -31,12 +31,13 @@ const PLANS = [
     icon: Zap,
     popular: true,
     features: [
-      "Up to 100 registrations (imported + platform)",
+      "Host 1 event per year",
+      "Unlimited registrations",
       "QR code check-in",
       "Attendee management dashboard",
       "Basic analytics",
       "Registration data export",
-      "Email confirmations (up to 100)",
+      "Email confirmations",
       "Basic promotion tools",
     ],
     notIncluded: [
@@ -47,7 +48,7 @@ const PLANS = [
       "Bulk invite past attendees",
       "Attendee Intelligence (CRM)",
     ],
-    limits: { registrations: 100 },
+    limits: { events: 1 },
   },
   {
     id: "pro",
@@ -57,13 +58,13 @@ const PLANS = [
     icon: Crown,
     features: [
       "All Organizer plan features",
-      "Up to 300 registrations",
+      "Host 3 events per year",
+      "Unlimited registrations",
       "Registration & checked-in data export",
       "Advanced analytics",
       "Multi-device check-in support",
       "Bulk invite past attendees (up to 50)",
       "Survey form (QR code only)",
-      "Email confirmations",
       "1 check-in staff support",
       "Advanced promotion tools",
     ],
@@ -72,7 +73,7 @@ const PLANS = [
       "Survey via email",
       "Custom integrations",
     ],
-    limits: { registrations: 300 },
+    limits: { events: 3 },
   },
   {
     id: "corporate",
@@ -82,6 +83,7 @@ const PLANS = [
     icon: Building2,
     features: [
       "All Pro plan features",
+      "Host 7 events per year",
       "Unlimited registrations",
       "Advanced reporting",
       "Attendee Intelligence (CRM)",
@@ -91,10 +93,9 @@ const PLANS = [
       "Custom integrations",
       "Survey form (QR + email to checked-in attendees)",
       "Advanced promotion tools",
-      "Valid for 2 months from activation",
     ],
-    limits: { registrations: -1 },
-    duration: "2 months",
+    limits: { events: 7 },
+    duration: "1 year",
   },
 ];
 
@@ -281,7 +282,7 @@ const SubscriptionGate = ({ userId, children }: Props) => {
               <h3 className="font-display text-lg font-bold text-foreground text-center">Complete Payment</h3>
               <div className="rounded-lg border border-border bg-secondary p-4 text-center">
                 <p className="text-2xl font-bold text-foreground">{PLANS.find(p => p.id === profile?.subscription_plan)?.price || "—"} ETB</p>
-                <p className="text-xs text-muted-foreground capitalize">{profile?.subscription_plan} Plan (per event)</p>
+                <p className="text-xs text-muted-foreground capitalize">{profile?.subscription_plan} Plan (1 year)</p>
               </div>
               {renderPaymentMethods()}
               {renderPaymentConfirmation(PLANS.find(p => p.id === profile?.subscription_plan)?.priceNum || 0)}
@@ -303,7 +304,7 @@ const SubscriptionGate = ({ userId, children }: Props) => {
         <div className="max-w-5xl mx-auto space-y-8">
           <div className="text-center space-y-2">
             <h1 className="font-display text-3xl font-bold text-foreground">Choose Your Plan</h1>
-            <p className="text-muted-foreground">Select the plan that fits your event management needs. All plans are per event.</p>
+            <p className="text-muted-foreground">Select the plan that fits your event management needs. All plans are billed yearly. Registrations are unlimited..</p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
@@ -319,7 +320,7 @@ const SubscriptionGate = ({ userId, children }: Props) => {
                   <h3 className="font-display text-lg font-bold text-foreground">{plan.name}</h3>
                   <div>
                     <span className="text-2xl font-bold text-foreground">{plan.price}</span>
-                    <span className="text-xs text-muted-foreground"> ETB / event</span>
+                    <span className="text-xs text-muted-foreground"> ETB / year</span>
                   </div>
                 </div>
                 <ul className="space-y-2">
