@@ -62,9 +62,9 @@ interface PlanConfig {
 }
 
 const DEFAULT_PLANS: PlanConfig[] = [
-  { id: "organizer", name: "Organizer", price: 1800, features: ["Up to 100 registrations", "QR code check-in", "Basic analytics", "Registration data export", "Email confirmations"], registrationLimit: 100 },
-  { id: "pro", name: "Pro Organizer", price: 6500, features: ["Up to 300 registrations", "Checked-in data export", "Advanced analytics", "Survey form (QR)", "1 check-in staff"], registrationLimit: 300 },
-  { id: "corporate", name: "Corporate", price: 10500, features: ["Unlimited registrations", "Advanced reporting", "Attendee Intelligence CRM", "Survey (QR + email)"], registrationLimit: null },
+  { id: "organizer", name: "Organizer", price: 1800, features: ["Host 1 event per year", "Unlimited registrations", "QR code check-in", "Basic analytics", "Registration data export", "Email confirmations"], registrationLimit: 1 },
+  { id: "pro", name: "Pro Organizer", price: 6500, features: ["Host 3 events per year", "Unlimited registrations", "Checked-in data export", "Advanced analytics", "Survey form (QR)", "1 check-in staff"], registrationLimit: 3 },
+  { id: "corporate", name: "Corporate", price: 10500, features: ["Host 7 events per year", "Unlimited registrations", "Advanced reporting", "Attendee Intelligence CRM", "Survey (QR + email)"], registrationLimit: 7 },
 ];
 
 interface UpgradeOffer {
@@ -129,20 +129,11 @@ const AdminSubscriptions = ({ searchQuery, adminId }: Props) => {
   };
 
   const approvePayment = async (payment: Payment) => {
-    // Corporate plan: strictly 2 months from approval date
-    // Other plans: event-bound (will be extended when events are created)
-    const now = new Date();
-    let expiresAt: string;
-    if (payment.plan === "corporate") {
-      const expiry = new Date(now);
-      expiry.setMonth(expiry.getMonth() + 2);
-      expiresAt = expiry.toISOString();
-    } else {
-      // For organizer/pro: set initial grace period, actual expiry set when event is created
-      const expiry = new Date(now);
-      expiry.setDate(expiry.getDate() + 30); // initial 30-day window to create an event
-      expiresAt = expiry.toISOString();
-    }
+    // All plans are now yearly subscriptions: expiry = approval date + 1 year.
+    // Event quotas: Organizer = 1 / yr, Pro = 3 / yr, Corporate = 7 / yr.
+    const expiry = new Date();
+    expiry.setFullYear(expiry.getFullYear() + 1);
+    const expiresAt = expiry.toISOString();
     const [updatePayment, updateProfile] = await Promise.all([
       supabase.from("subscription_payments").update({
         status: "approved",
@@ -653,7 +644,7 @@ const AdminSubscriptions = ({ searchQuery, adminId }: Props) => {
                         <span className="text-xs text-muted-foreground">ETB</span>
                       </div>
                     ) : (
-                      <span className="text-xl font-bold text-foreground">{plan.price.toLocaleString()} <span className="text-xs text-muted-foreground font-normal">ETB / event</span></span>
+                      <span className="text-xl font-bold text-foreground">{plan.price.toLocaleString()} <span className="text-xs text-muted-foreground font-normal">ETB / year</span></span>
                     )}
                   </div>
                   <div>
