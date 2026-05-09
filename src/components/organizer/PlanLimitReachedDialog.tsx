@@ -9,7 +9,7 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { ArrowUpCircle, RefreshCw, AlertTriangle } from "lucide-react";
-import { getPlanLabel, getPlanLimit } from "@/lib/registrationLimits";
+import { getPlanLabel, getPlanEventLimit } from "@/lib/registrationLimits";
 
 interface PlanLimitReachedDialogProps {
   open: boolean;
@@ -30,9 +30,10 @@ const PlanLimitReachedDialog = ({
   plan,
   onNavigateToSubscription,
 }: PlanLimitReachedDialogProps) => {
-  const limit = getPlanLimit(plan);
+  const limit = getPlanEventLimit(plan);
   const planLabel = getPlanLabel(plan);
   const upgradeTarget = getUpgradeTarget(plan);
+  const upgradeLimit = upgradeTarget ? getPlanEventLimit(upgradeTarget.key) : 0;
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -42,14 +43,15 @@ const PlanLimitReachedDialog = ({
             <AlertTriangle className="h-7 w-7 text-destructive" />
           </div>
           <AlertDialogTitle className="text-foreground text-xl">
-            Registration Limit Reached
+            Event Quota Reached
           </AlertDialogTitle>
           <AlertDialogDescription className="text-muted-foreground text-sm leading-relaxed">
-            You've used all <span className="font-semibold text-foreground">{limit}</span> registrations
-            included in your <span className="font-semibold text-foreground">{planLabel}</span> plan.
+            You've used all <span className="font-semibold text-foreground">{limit}</span> event{limit === 1 ? "" : "s"}
+            {" "}included in your <span className="font-semibold text-foreground">{planLabel}</span> yearly plan.
             {upgradeTarget
-              ? ` Upgrade to ${upgradeTarget.label} for ${getPlanLimit(upgradeTarget.key) === 999999 ? "unlimited" : getPlanLimit(upgradeTarget.key)} registrations, or renew your current plan.`
-              : " Renew your plan to continue registering attendees."}
+              ? ` Upgrade to ${upgradeTarget.label} to host up to ${upgradeLimit} events per year, or renew your current plan.`
+              : " Renew your plan to keep creating events."}
+            {" "}Registrations remain unlimited on every plan.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
