@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 import * as XLSX from "xlsx";
 import { FileSpreadsheet, Loader2, Mail, Download, Users, Trash2, FileText, Calendar, MapPin, Clock } from "lucide-react";
-import { getRemainingSlotsByOrganizer, getPlanLabel } from "@/lib/registrationLimits";
+import { getRemainingSlotsByOrganizer, getPlanLabel, getRemainingEvents } from "@/lib/registrationLimits";
 import { sendBulkTicketsChunked } from "@/lib/sendBulkTickets";
 import PlanLimitReachedDialog from "@/components/organizer/PlanLimitReachedDialog";
 
@@ -150,6 +150,14 @@ const OrganizerImport = ({ userId, isPaid = true, onRequirePlan, userPlan = "fre
         if (existingEvent) {
           eventId = existingEvent.id; eventSlug = existingEvent.slug; eventTitle = existingEvent.title;
         } else {
+          // Enforce yearly event quota before creating a brand-new event
+          const quota = await getRemainingEvents(userId);
+          if (quota.remaining <= 0) {
+            setLimitPlan(quota.plan);
+            setShowLimitDialog(true);
+            setImporting(false);
+            return;
+          }
           const slug = standaloneName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") + "-" + Date.now();
           const durationDays = parseInt(eventDuration) || 1;
           const { data: newEvent, error: eventErr } = await supabase.from("events").insert([{
@@ -161,20 +169,8 @@ const OrganizerImport = ({ userId, isPaid = true, onRequirePlan, userPlan = "fre
           }]).select("id, slug, title").single();
           if (eventErr || !newEvent) throw new Error(eventErr?.message || "Failed to create event");
 
-          // Update subscription expiry based on event end date (not for corporate — corporate is strictly time-bound)
-          const eventEndDate = new Date(eventDate);
-          eventEndDate.setDate(eventEndDate.getDate() + durationDays);
-          const { data: currentProfile } = await supabase.from("organizer_profiles")
-            .select("subscription_expires_at, subscription_plan")
-            .eq("user_id", userId).single();
-          if (currentProfile?.subscription_plan !== "corporate") {
-            const currentExpiry = currentProfile?.subscription_expires_at ? new Date(currentProfile.subscription_expires_at) : null;
-            if (!currentExpiry || eventEndDate > currentExpiry) {
-              await supabase.from("organizer_profiles")
-                .update({ subscription_expires_at: eventEndDate.toISOString() })
-                .eq("user_id", userId);
-            }
-          }
+          // Subscription expiry is fixed (1-year window) — event creation no longer extends it.
+
           eventId = newEvent.id; eventSlug = newEvent.slug; eventTitle = newEvent.title;
 
           const { data: updatedEvents } = await supabase.from("events").select("id, title, slug").eq("organizer_id", userId).order("date");
