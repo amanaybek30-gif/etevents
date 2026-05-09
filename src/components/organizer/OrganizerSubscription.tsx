@@ -7,25 +7,26 @@ import {
   Crown, Zap, Building2, CreditCard, Clock, Check, X,
   ArrowUpCircle, Loader2, AlertTriangle, Eye, RefreshCw,
 } from "lucide-react";
+import { getRemainingEvents } from "@/lib/registrationLimits";
 
 interface Props {
   userId: string;
   onRequirePlan?: () => void;
 }
 
-const PLAN_META: Record<string, { label: string; icon: React.ElementType; color: string; features: string[] }> = {
-  free: { label: "Free (Exploring)", icon: CreditCard, color: "text-muted-foreground", features: ["Browse dashboard", "No active features"] },
+const PLAN_META: Record<string, { label: string; icon: React.ElementType; color: string; events: number; features: string[] }> = {
+  free: { label: "Free (Exploring)", icon: CreditCard, color: "text-muted-foreground", events: 0, features: ["Browse dashboard", "No active features"] },
   organizer: {
-    label: "Organizer", icon: Zap, color: "text-blue-500",
-    features: ["Up to 100 registrations", "QR code check-in", "Basic analytics", "Registration data export", "Email confirmations (up to 100)", "Basic promotion tools"],
+    label: "Organizer", icon: Zap, color: "text-blue-500", events: 1,
+    features: ["Host 1 event per year", "Unlimited registrations", "QR code check-in", "Basic analytics", "Registration data export", "Email confirmations", "Basic promotion tools"],
   },
   pro: {
-    label: "Pro Organizer", icon: Crown, color: "text-amber-500",
-    features: ["Up to 300 registrations", "Checked-in data export", "Advanced analytics", "Multi-device check-in support", "Bulk invite past attendees (up to 50)", "Survey form (QR code only)", "1 check-in staff support", "Advanced promotion tools"],
+    label: "Pro Organizer", icon: Crown, color: "text-amber-500", events: 3,
+    features: ["Host 3 events per year", "Unlimited registrations", "Checked-in data export", "Advanced analytics", "Multi-device check-in support", "Bulk invite past attendees (up to 50)", "Survey form (QR code only)", "1 check-in staff support", "Advanced promotion tools"],
   },
   corporate: {
-    label: "Corporate", icon: Building2, color: "text-purple-500",
-    features: ["Unlimited registrations", "Advanced reporting", "Attendee Intelligence (CRM)", "Unlimited past event invites", "Multi-device check-in support", "Registration supporting staff", "Survey (QR + email)", "Advanced promotion tools"],
+    label: "Corporate", icon: Building2, color: "text-purple-500", events: 7,
+    features: ["Host 7 events per year", "Unlimited registrations", "Advanced reporting", "Attendee Intelligence (CRM)", "Unlimited past event invites", "Multi-device check-in support", "Registration supporting staff", "Survey (QR + email)", "Advanced promotion tools"],
   },
 };
 
@@ -44,6 +45,7 @@ const OrganizerSubscription = ({ userId, onRequirePlan }: Props) => {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [quota, setQuota] = useState<{ remaining: number; used: number; limit: number } | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -51,7 +53,7 @@ const OrganizerSubscription = ({ userId, onRequirePlan }: Props) => {
 
   const fetchData = async () => {
     setLoading(true);
-    const [{ data: prof }, { data: pays }] = await Promise.all([
+    const [{ data: prof }, { data: pays }, q] = await Promise.all([
       supabase.from("organizer_profiles")
         .select("subscription_plan, subscription_paid, subscription_expires_at, is_suspended")
         .eq("user_id", userId).single(),
@@ -59,9 +61,11 @@ const OrganizerSubscription = ({ userId, onRequirePlan }: Props) => {
         .select("*")
         .eq("organizer_id", userId)
         .order("created_at", { ascending: false }),
+      getRemainingEvents(userId),
     ]);
     setProfile(prof);
     setPayments((pays as PaymentRecord[]) || []);
+    setQuota({ remaining: q.remaining, used: q.used, limit: q.limit });
     setLoading(false);
   };
 
@@ -125,12 +129,35 @@ const OrganizerSubscription = ({ userId, onRequirePlan }: Props) => {
             <Clock className="h-4 w-4" />
             <span>
               Expires: <span className={`font-medium ${isExpired ? "text-destructive" : "text-foreground"}`}>{expiresAt.toLocaleDateString()}</span>
-              {plan === "corporate" && !isExpired && (
+              {!isExpired && (
                 <span className="ml-2 text-xs text-muted-foreground">
                   ({Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days remaining)
                 </span>
               )}
             </span>
+          </div>
+        )}
+
+        {/* Event Quota Usage */}
+        {isPaid && quota && quota.limit > 0 && (
+          <div className="rounded-lg border border-border bg-secondary/40 p-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-semibold text-foreground">Events used this year</span>
+              <span className="text-xs text-muted-foreground">
+                {quota.used} / {quota.limit}
+              </span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-background overflow-hidden">
+              <div
+                className={`h-full ${quota.remaining === 0 ? "bg-destructive" : "bg-primary"}`}
+                style={{ width: `${Math.min((quota.used / quota.limit) * 100, 100)}%` }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1.5">
+              {quota.remaining > 0
+                ? `${quota.remaining} event${quota.remaining === 1 ? "" : "s"} remaining. Registrations are unlimited.`
+                : "Quota reached. Upgrade or renew to host more events."}
+            </p>
           </div>
         )}
 
