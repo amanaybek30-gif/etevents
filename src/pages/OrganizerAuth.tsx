@@ -175,7 +175,7 @@ const OrganizerAuth = () => {
                       <li>You agree to provide accurate information during registration.</li>
                       <li>Event content must comply with local laws and regulations.</li>
                       <li>A paid subscription is required to access the organizer dashboard.</li>
-                      <li>Subscription plans are charged per event. Admin approval is required after payment.</li>
+                      <li>Subscription plans are billed yearly. Admin approval is required after payment.</li>
                       <li>Failure to pay will result in account suspension and inability to access the dashboard.</li>
                       <li><strong>No refunds</strong> will be issued for subscription payments under any circumstances.</li>
                       <li>Published events will go live immediately and are not subject to admin approval, but the admin reserves the right to suspend any event if violations are found.</li>
