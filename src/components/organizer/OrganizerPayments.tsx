@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetchAllRows";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
@@ -39,15 +40,25 @@ const OrganizerPayments = ({ userId, isPaid = true, onRequirePlan }: Props) => {
 
   const fetchPayments = async () => {
     if (events.length === 0) { setPayments([]); setLoading(false); return; }
-    let query = supabase.from("registrations").select("*").order("created_at", { ascending: false });
+    // Root-cause fix: only pull the columns actually rendered on this
+    // page and page through with fetchAllRows so >1000 rows load in full
+    // instead of being silently truncated to Supabase's default cap.
+    let query = supabase
+      .from("registrations")
+      .select("id, full_name, email, phone, payment_method, bank_name, receipt_url, status, created_at, event_id, ticket_id, event_slug")
+      .order("created_at", { ascending: false });
     if (selectedEvent !== "all") {
       query = query.eq("event_id", selectedEvent);
     } else {
       query = query.in("event_id", events.map(e => e.id));
     }
     if (filter !== "all") query = query.eq("status", filter);
-    const { data } = await query;
-    if (data) setPayments(data as PaymentReg[]);
+    try {
+      const data = await fetchAllRows<PaymentReg>(query);
+      setPayments(data);
+    } catch {
+      setPayments([]);
+    }
     setLoading(false);
   };
 
