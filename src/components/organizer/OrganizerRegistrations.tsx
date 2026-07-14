@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetchAllRows";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 import * as XLSX from "xlsx";
-import { Search, Download, CheckCircle, XCircle, QrCode, Eye, Upload, Trash2, Loader2, Link, Copy } from "lucide-react";
+import { Search, Download, CheckCircle, XCircle, QrCode, Eye, Upload, Trash2, Loader2, Link, Copy, ChevronLeft, ChevronRight } from "lucide-react";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
 interface Registration {
@@ -81,6 +82,8 @@ const OrganizerRegistrations = ({ userId, searchQuery, userPlan = "free", subscr
   const [confirmClearAll, setConfirmClearAll] = useState(false);
   const [expandedResponses, setExpandedResponses] = useState<string | null>(null);
   const [eventQuestions, setEventQuestions] = useState<Record<string, { id: string; label: string }[]>>({});
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 50;
 
   // Load custom questions for events to map question IDs to labels
   useEffect(() => {
@@ -110,28 +113,42 @@ const OrganizerRegistrations = ({ userId, searchQuery, userPlan = "free", subscr
 
   useEffect(() => {
     fetchRegistrations();
+    setPage(1);
   }, [userId, events, selectedEvent, statusFilter]);
 
-  // Realtime subscription for live updates
+  // Realtime subscription for live updates — debounced so a burst of
+  // inserts (e.g. bulk import at scale) doesn't refetch the entire
+  // registrations table repeatedly on organizers with 1000+ rows.
+  const refetchTimer = useRef<number | null>(null);
+  const scheduleRefetch = () => {
+    if (refetchTimer.current) window.clearTimeout(refetchTimer.current);
+    refetchTimer.current = window.setTimeout(() => {
+      refetchTimer.current = null;
+      fetchRegistrations();
+    }, 1500);
+  };
+
   useEffect(() => {
     if (events.length === 0) return;
-    const ids = events.map(e => e.id);
+    const ids = new Set(events.map(e => e.id));
     const channel = supabase
       .channel('registrations-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations' }, (payload) => {
-        const row = payload.new as any;
-        if (row && ids.includes(row.event_id)) {
-          fetchRegistrations();
-        } else if (payload.eventType === 'DELETE') {
-          fetchRegistrations();
-        }
+        const row = (payload.new as any) || (payload.old as any);
+        if (row && ids.has(row.event_id)) scheduleRefetch();
       })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      if (refetchTimer.current) window.clearTimeout(refetchTimer.current);
+      supabase.removeChannel(channel);
+    };
+     
   }, [events, selectedEvent, statusFilter]);
 
   const fetchRegistrations = async () => {
     if (events.length === 0) { setRegistrations([]); setLoading(false); return; }
+    // Explicit paged fetch — Supabase's implicit 1000-row cap would
+    // otherwise silently truncate the list for corporate organizers.
     let query = supabase.from("registrations").select("*").order("created_at", { ascending: false });
     if (selectedEvent !== "all") {
       query = query.eq("event_id", selectedEvent);
@@ -139,8 +156,12 @@ const OrganizerRegistrations = ({ userId, searchQuery, userPlan = "free", subscr
       query = query.in("event_id", events.map(e => e.id));
     }
     if (statusFilter !== "all") query = query.eq("status", statusFilter);
-    const { data } = await query;
-    if (data) setRegistrations(data as Registration[]);
+    try {
+      const data = await fetchAllRows<Registration>(query);
+      setRegistrations(data);
+    } catch {
+      setRegistrations([]);
+    }
     setLoading(false);
   };
 
@@ -287,6 +308,15 @@ const OrganizerRegistrations = ({ userId, searchQuery, userPlan = "free", subscr
     return true;
   });
 
+  // Reset to page 1 when the filtered set changes, then slice for render.
+  // Rendering 1000+ table rows at once is the second big source of lag —
+  // React reconciliation of that many <tr>s stalls the main thread.
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const paged = filtered.slice(pageStart, pageStart + PAGE_SIZE);
+  useEffect(() => { setPage(1); }, [searchQuery, sourceFilter, typeFilter, checkinFilter, confirmFilter, selectedEvent, statusFilter]);
+
   const activeTypes = [...new Set(registrations.map(r => r.attendee_type))];
 
   return (
@@ -390,10 +420,10 @@ const OrganizerRegistrations = ({ userId, searchQuery, userPlan = "free", subscr
 
       {/* Mobile Cards */}
       <div className="md:hidden space-y-3">
-        {filtered.map((r, idx) => (
+        {paged.map((r, idx) => (
           <div key={r.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
             <div className="flex items-start justify-between">
-              <span className="text-xs font-bold text-muted-foreground mr-2">#{idx + 1}</span>
+              <span className="text-xs font-bold text-muted-foreground mr-2">#{pageStart + idx + 1}</span>
               <div>
                 <p className="font-semibold text-foreground">{r.full_name}</p>
                 <p className="text-xs font-mono text-primary">{r.ticket_id}</p>
@@ -466,10 +496,10 @@ const OrganizerRegistrations = ({ userId, searchQuery, userPlan = "free", subscr
             <tr>{["#", "Ticket ID", "Name", "Type", "Source", "Email", "Phone", "Payment", "Status", "RSVP", "Email", "Check-in", "Responses", "Actions"].map(h => <th key={h} className="px-3 py-3 text-left font-semibold text-foreground text-xs">{h}</th>)}</tr>
           </thead>
           <tbody>
-            {filtered.map((r, idx) => (
+            {paged.map((r, idx) => (
               <React.Fragment key={r.id}>
               <tr className="border-b border-border hover:bg-secondary/50 transition-colors">
-                <td className="px-3 py-3 text-xs font-bold text-muted-foreground">{idx + 1}</td>
+                <td className="px-3 py-3 text-xs font-bold text-muted-foreground">{pageStart + idx + 1}</td>
                 <td className="px-3 py-3 font-mono text-xs text-primary">{r.ticket_id}</td>
                 <td className="px-3 py-3 text-foreground text-xs">{r.full_name}</td>
                 <td className="px-3 py-3">
@@ -559,6 +589,24 @@ const OrganizerRegistrations = ({ userId, searchQuery, userPlan = "free", subscr
           </tbody>
         </table>
       </div>
+
+      {/* Pagination — keeps the DOM small even with thousands of registrations */}
+      {filtered.length > PAGE_SIZE && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm">
+          <span className="text-muted-foreground">
+            Showing {pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, filtered.length)} of {filtered.length}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" disabled={currentPage <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="border-border h-8">
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-xs text-muted-foreground">Page {currentPage} / {totalPages}</span>
+            <Button size="sm" variant="outline" disabled={currentPage >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))} className="border-border h-8">
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Rejection Reason Dialog */}
       {rejectingId && (
