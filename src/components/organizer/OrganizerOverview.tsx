@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { deduplicateRegistrations } from "@/lib/deduplicateRegistrations";
 import { Users, CheckCircle, Clock, XCircle, DollarSign, Plus, ClipboardList, CreditCard, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { OrganizerSection } from "./OrganizerSidebar";
@@ -25,40 +24,66 @@ const OrganizerOverview = ({ userId, onNavigate }: Props) => {
 
   useEffect(() => {
     const fetch = async () => {
-      // Get organizer's events
-      const { data: events } = await supabase.from("events").select("id, title, ticket_price").eq("organizer_id", userId);
+      // Get organizer's events (only fields we need)
+      const { data: events } = await supabase
+        .from("events")
+        .select("id, title, ticket_price")
+        .eq("organizer_id", userId);
       if (!events || events.length === 0) { setLoading(false); return; }
 
       const eventIds = events.map(e => e.id);
-      const { data: regs } = await supabase.from("registrations").select("*").in("event_id", eventIds).order("created_at", { ascending: false });
 
-      if (regs) {
-        const dedupedRegs = deduplicateRegistrations(regs);
-        const approved = dedupedRegs.filter(r => r.status === "approved");
-        // Calculate revenue from approved registrations
-        let revenue = 0;
-        approved.forEach(r => {
-          const ev = events.find(e => e.id === r.event_id);
-          if (ev) {
-            const price = parseFloat(ev.ticket_price?.replace(/[^0-9.]/g, "") || "0");
-            if (!isNaN(price)) revenue += price;
-          }
-        });
+      // Root-cause fix: never pull the full registrations table for the
+      // Overview page. Compute each counter with a `head + count: exact`
+      // query — Postgres returns only the aggregate, no row payload — and
+      // fetch just the newest 8 rows for the activity feed.
+      const base = () => supabase.from("registrations").select("*", { count: "exact", head: true }).in("event_id", eventIds);
 
-        const recent = dedupedRegs.slice(0, 8).map(r => ({
-          text: `${r.status === "approved" ? "✔" : r.status === "rejected" ? "✖" : "⏳"} ${r.full_name} — ${r.status}`,
-          time: new Date(r.created_at).toLocaleDateString(),
-        }));
+      const [totalRes, approvedRes, pendingRes, rejectedRes, revenueRes, recentRes] = await Promise.all([
+        base(),
+        base().eq("status", "approved"),
+        base().eq("status", "pending"),
+        base().eq("status", "rejected"),
+        // Approved registrations grouped by event so we can price them.
+        // Narrow columns keep the payload tiny even at 10k+ approvals.
+        supabase
+          .from("registrations")
+          .select("event_id")
+          .in("event_id", eventIds)
+          .eq("status", "approved")
+          .range(0, 49999),
+        supabase
+          .from("registrations")
+          .select("full_name, status, created_at")
+          .in("event_id", eventIds)
+          .order("created_at", { ascending: false })
+          .limit(8),
+      ]);
 
-        setStats({
-          totalRegs: dedupedRegs.length,
-          approved: approved.length,
-          pending: dedupedRegs.filter(r => r.status === "pending").length,
-          rejected: dedupedRegs.filter(r => r.status === "rejected").length,
-          revenue,
-          recentActivity: recent,
-        });
-      }
+      const priceByEvent = new Map<string, number>();
+      events.forEach(e => {
+        const p = parseFloat((e.ticket_price || "").replace(/[^0-9.]/g, ""));
+        priceByEvent.set(e.id, isNaN(p) ? 0 : p);
+      });
+
+      let revenue = 0;
+      (revenueRes.data || []).forEach(r => {
+        revenue += priceByEvent.get(r.event_id) || 0;
+      });
+
+      const recent = (recentRes.data || []).map(r => ({
+        text: `${r.status === "approved" ? "✔" : r.status === "rejected" ? "✖" : "⏳"} ${r.full_name} — ${r.status}`,
+        time: new Date(r.created_at).toLocaleDateString(),
+      }));
+
+      setStats({
+        totalRegs: totalRes.count || 0,
+        approved: approvedRes.count || 0,
+        pending: pendingRes.count || 0,
+        rejected: rejectedRes.count || 0,
+        revenue,
+        recentActivity: recent,
+      });
       setLoading(false);
     };
     fetch();
