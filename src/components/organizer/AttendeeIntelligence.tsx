@@ -15,6 +15,7 @@ import CRMEmailDialog from "./crm/CRMEmailDialog";
 import CRMSmartLists from "./crm/CRMSmartLists";
 import CRMAnalytics from "./crm/CRMAnalytics";
 import { fmt1, round1 } from "@/lib/formatMetric";
+import { fetchAllRows } from "@/lib/fetchAllRows";
 
 interface Props { userId: string; }
 
@@ -46,10 +47,14 @@ const AttendeeIntelligence = ({ userId }: Props) => {
     setEvents(eventsData.map(e => ({ id: e.id, title: e.title, date: e.date })));
     const ids = eventsData.map(e => e.id);
 
-    const [regsRes, storedRes, tagsRes, notesRes] = await Promise.all([
-      supabase.from("registrations")
-        .select("full_name, email, phone, event_id, status, checked_in, checked_in_at, created_at, custom_answers")
-        .in("event_id", ids),
+    // Paged registrations fetch — bypass Supabase's 1000-row implicit
+    // cap so corporate CRM data is complete + loads without lag.
+    const regsBuilder = supabase.from("registrations")
+      .select("full_name, email, phone, event_id, status, checked_in, checked_in_at, created_at, custom_answers")
+      .in("event_id", ids);
+
+    const [regsData, storedRes, tagsRes, notesRes] = await Promise.all([
+      fetchAllRows<any>(regsBuilder).catch(() => [] as any[]),
       supabase.from("attendee_profiles")
         .select("email, organization, job_title, phone")
         .eq("organizer_id", userId),
@@ -62,7 +67,7 @@ const AttendeeIntelligence = ({ userId }: Props) => {
         .order("created_at", { ascending: false }),
     ]);
 
-    const rawRegs = regsRes.data || [];
+    const rawRegs = regsData || [];
     const regs = deduplicateRegistrations(rawRegs);
     const storedProfiles = storedRes.data || [];
     const tags = tagsRes.data || [];
