@@ -19,6 +19,7 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import { toast } from "sonner";
 import { fmt1, round1 } from "@/lib/formatMetric";
+import { fetchAllRows } from "@/lib/fetchAllRows";
 
 interface Props {
   userId: string;
@@ -92,10 +93,13 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
     const events = selectedEventId === "all" ? allEventsData : allEventsData.filter(e => e.id === selectedEventId);
     setTotalEvents(events.length);
     const ids = events.map(e => e.id);
-    const { data: regs } = await supabase.from("registrations")
+    // Paged fetch — the default 1000-row cap would silently truncate
+    // analytics for corporate organizers, producing wrong charts + lag.
+    const regsBuilder = supabase.from("registrations")
       .select("created_at, status, checked_in, checked_in_at, event_id, email, phone, source, attendee_type, payment_method, full_name, custom_answers")
       .in("event_id", ids);
-    if (!regs) return;
+    const regs = await fetchAllRows<any>(regsBuilder).catch(() => [] as any[]);
+    if (!regs || regs.length === 0) return;
 
     const dedupedRegs = deduplicateRegistrations(regs);
     // Use deduplicated data for all analytics from here on
