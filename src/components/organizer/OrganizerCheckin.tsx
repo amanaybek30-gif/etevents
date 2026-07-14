@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetchAllRows";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -44,11 +45,15 @@ const OrganizerCheckin = ({ userId, isPaid = true, onRequirePlan, userPlan = "fr
     setEvents(evs);
 
     const ids = evs.map(e => e.id);
-    const { data: regs } = await supabase.from("registrations")
+    
+    // Paged fetch — otherwise >1000 approved attendees are silently
+    // dropped from the check-in list and stats look wrong.
+    const regsBuilder = supabase.from("registrations")
       .select("full_name, ticket_id, checked_in, checked_in_at, status, event_id, attendee_type")
       .in("event_id", ids);
+    const regs = await fetchAllRows<any>(regsBuilder).catch(() => [] as any[]);
 
-    if (regs) {
+    if (regs && regs.length > 0) {
       setTotalApproved(regs.filter(r => r.status === "approved").length);
       const checkedIn = regs.filter(r => r.checked_in && r.checked_in_at);
       setCheckedInCount(checkedIn.length);
