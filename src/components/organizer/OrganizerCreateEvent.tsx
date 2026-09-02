@@ -60,6 +60,8 @@ const OrganizerCreateEvent = ({ userId, onNavigate, isPaid = true, onRequirePlan
     other_category: "", host: "", partners: "", expected_attendees: "",
     payment_instructions: "",
   });
+  const [priceMode, setPriceMode] = useState<"Free" | "At the door" | "custom">("Free");
+
   // Speakers/Guests
   const [speakers, setSpeakers] = useState<{ name: string; title: string; bio: string; statement: string; photo_url: string; role: string }[]>([]);
   const speakerPhotoRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -284,6 +286,8 @@ const OrganizerCreateEvent = ({ userId, onNavigate, isPaid = true, onRequirePlan
       setCreatedEventLink(`${window.location.origin}/event/${slug}`);
       toast.success("Event published successfully!");
       setEventForm({ title: "", slug: "", category: "General", date: "", end_date: "", time: "", location: "", map_link: "", duration: "", ticket_price: "Free", short_description: "", about: "", details: "", what_to_expect: "", other_category: "", host: "", partners: "", expected_attendees: "", payment_instructions: "" });
+      setPriceMode("Free");
+
       setAcceptedPayments([]); setBankPayments([{ bank: "", otherBank: "", accountNumber: "", accountName: "" }]);
       setTelebirrInfo({ name: "", phone: "" }); setMpessaInfo({ name: "", phone: "" });
       setPosterFile(null); setPosterPreview(null); setQrCodeFile(null); setVideoFile(null); setVideoPreview(null);
@@ -333,7 +337,13 @@ const OrganizerCreateEvent = ({ userId, onNavigate, isPaid = true, onRequirePlan
             <div className="space-y-2"><Label>Expected Attendees</Label><Input type="number" value={eventForm.expected_attendees} onChange={e => setEventForm({ ...eventForm, expected_attendees: e.target.value })} placeholder="500" className="border-border bg-secondary" /></div>
             <div className="space-y-2">
               <Label>Ticket Price</Label>
-              <Select value={eventForm.ticket_price} onValueChange={v => setEventForm({ ...eventForm, ticket_price: v })}>
+              <Select
+                value={priceMode}
+                onValueChange={v => {
+                  setPriceMode(v as "Free" | "At the door" | "custom");
+                  setEventForm(prev => ({ ...prev, ticket_price: v === "custom" ? "" : v }));
+                }}
+              >
                 <SelectTrigger className="border-border bg-secondary"><SelectValue placeholder="Select pricing" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Free">Free</SelectItem>
@@ -341,14 +351,17 @@ const OrganizerCreateEvent = ({ userId, onNavigate, isPaid = true, onRequirePlan
                   <SelectItem value="custom">Custom Price</SelectItem>
                 </SelectContent>
               </Select>
-              {eventForm.ticket_price === "custom" && (
-                <Input value="" onChange={e => setEventForm({ ...eventForm, ticket_price: e.target.value || "custom" })} placeholder="e.g. 500 ETB" className="border-border bg-secondary mt-2" />
-              )}
-              {!["Free", "At the door", "custom"].includes(eventForm.ticket_price) && eventForm.ticket_price !== "" && (
-                <Input value={eventForm.ticket_price} onChange={e => setEventForm({ ...eventForm, ticket_price: e.target.value })} placeholder="e.g. 500 ETB" className="border-border bg-secondary mt-2" />
+              {priceMode === "custom" && (
+                <Input
+                  value={eventForm.ticket_price}
+                  onChange={e => setEventForm(prev => ({ ...prev, ticket_price: e.target.value }))}
+                  placeholder="e.g. 500 ETB"
+                  className="border-border bg-secondary mt-2"
+                />
               )}
               <p className="text-xs text-muted-foreground">Default price if no tiers are set</p>
             </div>
+
             <div className="space-y-2"><Label>Hosting Organization</Label><Input value={eventForm.host} onChange={e => setEventForm({ ...eventForm, host: e.target.value })} placeholder="Your organization" className="border-border bg-secondary" /></div>
             <div className="space-y-2"><Label>Partners</Label><Input value={eventForm.partners} onChange={e => setEventForm({ ...eventForm, partners: e.target.value })} placeholder="Partner A, Partner B" className="border-border bg-secondary" /><p className="text-xs text-muted-foreground">Comma separated</p></div>
           </div>
