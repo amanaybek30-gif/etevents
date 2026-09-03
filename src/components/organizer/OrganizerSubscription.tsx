@@ -185,6 +185,11 @@ const OrganizerSubscription = ({ userId, onRequirePlan }: Props) => {
               <ArrowUpCircle className="h-4 w-4 mr-1" /> Upgrade Plan
             </Button>
           )}
+          {plan !== "free" && isPaid && (isExpired || (quota && quota.remaining === 0)) && !hasPendingPayment && (
+            <Button onClick={onRequirePlan} className="bg-gradient-gold text-primary-foreground">
+              <RefreshCw className="h-4 w-4 mr-1" /> Renew {meta.label} Plan — Pay Now
+            </Button>
+          )}
         </div>
       </div>
 
