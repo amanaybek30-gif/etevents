@@ -16,6 +16,8 @@ interface PlanLimitReachedDialogProps {
   onOpenChange: (open: boolean) => void;
   plan: string;
   onNavigateToSubscription: () => void;
+  /** Opens the payment dialog directly so the organizer can pay & renew right away. */
+  onRenewNow?: () => void;
 }
 
 function getUpgradeTarget(plan: string): { label: string; key: string } | null {
@@ -29,7 +31,13 @@ const PlanLimitReachedDialog = ({
   onOpenChange,
   plan,
   onNavigateToSubscription,
+  onRenewNow,
 }: PlanLimitReachedDialogProps) => {
+  const goPay = () => {
+    onOpenChange(false);
+    if (onRenewNow) onRenewNow();
+    else onNavigateToSubscription();
+  };
   const limit = getPlanEventLimit(plan);
   const planLabel = getPlanLabel(plan);
   const upgradeTarget = getUpgradeTarget(plan);
@@ -57,10 +65,7 @@ const PlanLimitReachedDialog = ({
         <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
           {upgradeTarget && (
             <AlertDialogAction
-              onClick={() => {
-                onOpenChange(false);
-                onNavigateToSubscription();
-              }}
+              onClick={goPay}
               className="w-full bg-primary text-primary-foreground hover:bg-primary/90 gap-2"
             >
               <ArrowUpCircle className="h-4 w-4" />
@@ -68,14 +73,11 @@ const PlanLimitReachedDialog = ({
             </AlertDialogAction>
           )}
           <AlertDialogAction
-            onClick={() => {
-              onOpenChange(false);
-              onNavigateToSubscription();
-            }}
+            onClick={goPay}
             className={`w-full gap-2 ${upgradeTarget ? "bg-secondary text-secondary-foreground hover:bg-secondary/80" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}
           >
             <RefreshCw className="h-4 w-4" />
-            Renew {planLabel} Plan
+            Renew {planLabel} Plan — Pay Now
           </AlertDialogAction>
           <AlertDialogCancel className="w-full border-border mt-0">
             Close
