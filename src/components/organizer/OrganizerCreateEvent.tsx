@@ -739,6 +739,7 @@ const OrganizerCreateEvent = ({ userId, onNavigate, isPaid = true, onRequirePlan
         onOpenChange={setShowQuotaDialog}
         plan={quotaPlan}
         onNavigateToSubscription={() => { setShowQuotaDialog(false); onRequirePlan?.(); }}
+        onRenewNow={() => { setShowQuotaDialog(false); onRequirePlan?.(); }}
       />
     </div>
   );
