@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Check, X, Crown, Zap, Building2, Plus, Wrench,
-  CreditCard, Upload, AlertTriangle, Loader2, CheckCircle2, Clock, ArrowUpCircle,
+  CreditCard, Upload, AlertTriangle, Loader2, CheckCircle2, Clock, ArrowUpCircle, RefreshCw,
 } from "lucide-react";
 import CustomRequestWizard from "./CustomRequestWizard";
 
@@ -86,6 +86,7 @@ const PlanPromptDialog = ({ open, onClose, userId }: Props) => {
   const canUpgrade = currentPlan === "organizer" || currentPlan === "pro";
 
   const selectedPlan = PLANS.find(p => p.id === selectedPlanId);
+  const isRenewalFlow = !!selectedPlanId && selectedPlanId === currentPlan && currentPlan !== "free";
   const addonTotal = Object.entries(selectedAddons)
     .filter(([, v]) => v)
     .reduce((sum, [id]) => sum + (ADDONS.find(a => a.id === id)?.priceNum || 0), 0);
@@ -111,6 +112,7 @@ const PlanPromptDialog = ({ open, onClose, userId }: Props) => {
 
   const handleSelectPlan = async (planId: string) => {
     setSelectedPlanId(planId);
+    const renewing = planId === currentPlan && currentPlan !== "free";
     const { data: settingsData } = await supabase.from("platform_settings").select("key, value");
     if (settingsData) {
       const map: Record<string, string> = {};
@@ -118,12 +120,14 @@ const PlanPromptDialog = ({ open, onClose, userId }: Props) => {
       try { setPaymentMethods(JSON.parse(map["subscription_payment_methods"] || "[]")); } catch { setPaymentMethods([]); }
       try { setPaymentDetails(JSON.parse(map["subscription_payment_details"] || "{}")); } catch { setPaymentDetails({}); }
     }
-    const graceDaysStr = settingsData?.find(s => s.key === "subscription_grace_days")?.value;
-    const graceDays = parseInt(graceDaysStr || "7");
-    await supabase.from("organizer_profiles").update({
-      subscription_plan: planId,
-      subscription_expires_at: new Date(Date.now() + graceDays * 24 * 60 * 60 * 1000).toISOString(),
-    }).eq("user_id", userId);
+    if (!renewing) {
+      const graceDaysStr = settingsData?.find(s => s.key === "subscription_grace_days")?.value;
+      const graceDays = parseInt(graceDaysStr || "7");
+      await supabase.from("organizer_profiles").update({
+        subscription_plan: planId,
+        subscription_expires_at: new Date(Date.now() + graceDays * 24 * 60 * 60 * 1000).toISOString(),
+      }).eq("user_id", userId);
+    }
     setStep("payment");
   };
 
@@ -166,6 +170,7 @@ const PlanPromptDialog = ({ open, onClose, userId }: Props) => {
 
       const isUpgrade = step === "upgrade";
       const planToSubmit = isUpgrade ? upgradeToPlan : selectedPlanId;
+      const isRenewal = !isUpgrade && planToSubmit === currentPlan && currentPlan !== "free";
 
       await supabase.from("subscription_payments").insert({
         organizer_id: userId,
@@ -175,7 +180,11 @@ const PlanPromptDialog = ({ open, onClose, userId }: Props) => {
         transaction_number: transactionNumber || null,
         receipt_url: receiptPath,
         status: "pending",
-        admin_notes: isUpgrade ? `UPGRADE from ${currentPlan} to ${planToSubmit}${isEarlyUpgrade ? " (early upgrade discount)" : ""}. Reason: ${upgradeReason}` : null,
+        admin_notes: isUpgrade
+          ? `UPGRADE from ${currentPlan} to ${planToSubmit}${isEarlyUpgrade ? " (early upgrade discount)" : ""}. Reason: ${upgradeReason}`
+          : isRenewal
+            ? `RENEWAL of ${planToSubmit} plan (quota/subscription exhausted).`
+            : null,
       });
 
       setStep("done");
@@ -210,14 +219,18 @@ const PlanPromptDialog = ({ open, onClose, userId }: Props) => {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="font-display text-xl font-bold text-foreground">
-              {step === "plan" && "Choose a Plan to Get Started"}
-              {step === "payment" && "Complete Your Payment"}
+              {step === "plan" && (currentPlan !== "free" ? "Renew or Upgrade Your Plan" : "Choose a Plan to Get Started")}
+              {step === "payment" && (isRenewalFlow ? "Complete Your Renewal Payment" : "Complete Your Payment")}
               {step === "upgrade" && `Upgrade to ${PLANS.find(p => p.id === upgradeToPlan)?.name}`}
               {step === "done" && "Payment Submitted!"}
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              {step === "plan" && "Select a plan to unlock features and start managing your events."}
-              {step === "payment" && "Use the payment details below and confirm your payment."}
+              {step === "plan" && (currentPlan !== "free"
+                ? "Renew your current plan for another year, or upgrade for more events."
+                : "Select a plan to unlock features and start managing your events.")}
+              {step === "payment" && (isRenewalFlow
+                ? "Pay the plan price below to renew. Your new event quota starts once the admin approves."
+                : "Use the payment details below and confirm your payment.")}
               {step === "upgrade" && "Complete the upgrade to access more features."}
               {step === "done" && "Your payment is being reviewed. We'll activate your account shortly."}
             </p>
@@ -310,11 +323,13 @@ const PlanPromptDialog = ({ open, onClose, userId }: Props) => {
                     )}
                     <Button
                       onClick={() => handleSelectPlan(plan.id)}
-                      disabled={isLowerPlan && currentPlan !== "free"}
-                      className={`w-full ${plan.popular && !isCurrentPlan ? "bg-gradient-gold text-primary-foreground" : ""}`}
-                      variant={plan.popular && !isCurrentPlan ? "default" : "outline"}
+                      disabled={isLowerPlan && !isCurrentPlan && currentPlan !== "free"}
+                      className={`w-full ${(plan.popular && !isCurrentPlan) || isCurrentPlan ? "bg-gradient-gold text-primary-foreground" : ""}`}
+                      variant={(plan.popular && !isCurrentPlan) || isCurrentPlan ? "default" : "outline"}
                     >
-                      {isCurrentPlan ? "Current Plan" : isLowerPlan && currentPlan !== "free" ? "Current or Lower" : "Select Plan"}
+                      {isCurrentPlan ? (
+                        <><RefreshCw className="h-3.5 w-3.5 mr-1" /> Renew {plan.name} — {plan.price} ETB</>
+                      ) : isLowerPlan && currentPlan !== "free" ? "Current or Lower" : "Select Plan"}
                     </Button>
                   </div>
                 );
