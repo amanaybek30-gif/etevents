@@ -128,10 +128,23 @@ const AdminSubscriptions = ({ searchQuery, adminId }: Props) => {
     return org?.email || "—";
   };
 
+  // A renewal is submitted by an organizer who already holds the same plan.
+  // PlanPromptDialog tags those payments with "RENEWAL of <plan> plan" in admin_notes.
+  const isRenewal = (payment: Payment) => {
+    if ((payment.admin_notes || "").toUpperCase().includes("RENEWAL")) return true;
+    const org = organizers.find(o => o.user_id === payment.organizer_id);
+    return !!org && org.subscription_plan === payment.plan && !!org.subscription_paid;
+  };
+
   const approvePayment = async (payment: Payment) => {
-    // All plans are now yearly subscriptions: expiry = approval date + 1 year.
+    // All plans are yearly subscriptions. New purchase: expiry = approval date + 1 year.
+    // Renewal: stack another year on top of any remaining time so nothing is lost.
     // Event quotas: Organizer = 1 / yr, Pro = 3 / yr, Corporate = 7 / yr.
-    const expiry = new Date();
+    const renewal = isRenewal(payment);
+    const org = organizers.find(o => o.user_id === payment.organizer_id);
+    const currentExpiry = org?.subscription_expires_at ? new Date(org.subscription_expires_at) : null;
+    const base = renewal && currentExpiry && currentExpiry > new Date() ? currentExpiry : new Date();
+    const expiry = new Date(base);
     expiry.setFullYear(expiry.getFullYear() + 1);
     const expiresAt = expiry.toISOString();
     const [updatePayment, updateProfile] = await Promise.all([
@@ -150,40 +163,41 @@ const AdminSubscriptions = ({ searchQuery, adminId }: Props) => {
     ]);
 
     if (updatePayment.error || updateProfile.error) {
-      toast.error("Failed to approve payment");
+      toast.error(renewal ? "Failed to approve renewal" : "Failed to approve payment");
       return;
     }
 
     await supabase.from("admin_logs").insert({
       admin_id: adminId,
-      action: "approve_subscription",
+      action: renewal ? "approve_subscription_renewal" : "approve_subscription",
       target_type: "subscription_payment",
       target_id: payment.id,
-      details: `Approved ${payment.plan} plan for ${getOrgName(payment.organizer_id)}`,
+      details: `${renewal ? "Approved renewal of" : "Approved"} ${payment.plan} plan for ${getOrgName(payment.organizer_id)} (valid until ${expiry.toLocaleDateString()})`,
     });
 
-    toast.success(`Payment approved for ${getOrgName(payment.organizer_id)}`);
+    toast.success(`${renewal ? "Renewal" : "Payment"} approved for ${getOrgName(payment.organizer_id)}`);
     fetchAll();
   };
 
   const rejectPayment = async (payment: Payment) => {
+    const renewal = isRenewal(payment);
     await supabase.from("subscription_payments").update({
       status: "rejected",
       reviewed_by: adminId,
       reviewed_at: new Date().toISOString(),
-      admin_notes: editNotes[payment.id] || payment.admin_notes || "Payment rejected",
+      admin_notes: editNotes[payment.id] || payment.admin_notes || (renewal ? "Renewal payment rejected" : "Payment rejected"),
       updated_at: new Date().toISOString(),
     }).eq("id", payment.id);
 
     await supabase.from("admin_logs").insert({
       admin_id: adminId,
-      action: "reject_subscription",
+      action: renewal ? "reject_subscription_renewal" : "reject_subscription",
       target_type: "subscription_payment",
       target_id: payment.id,
-      details: `Rejected payment for ${getOrgName(payment.organizer_id)}`,
+      details: `Rejected ${renewal ? "renewal " : ""}payment for ${getOrgName(payment.organizer_id)}`,
     });
 
-    toast.success("Payment rejected");
+    toast.success(renewal ? "Renewal rejected" : "Payment rejected");
     fetchAll();
   };
 
@@ -364,10 +378,15 @@ const AdminSubscriptions = ({ searchQuery, adminId }: Props) => {
                           <p className="text-xs text-muted-foreground">{getOrgEmail(p.organizer_id)}</p>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-xs gap-1">
-                            <meta.icon className={`h-3 w-3 ${meta.color}`} />
-                            {meta.label}
-                          </Badge>
+                          <div className="flex flex-wrap items-center gap-1">
+                            <Badge variant="outline" className="text-xs gap-1">
+                              <meta.icon className={`h-3 w-3 ${meta.color}`} />
+                              {meta.label}
+                            </Badge>
+                            {isRenewal(p) && (
+                              <Badge className="text-xs bg-amber-500/15 text-amber-600 border-amber-500/30">Renewal</Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-sm font-semibold text-foreground">{p.amount.toLocaleString()} ETB</TableCell>
                         <TableCell className="text-xs font-mono text-muted-foreground">{p.transaction_number || "—"}</TableCell>
@@ -534,10 +553,15 @@ const AdminSubscriptions = ({ searchQuery, adminId }: Props) => {
                           <p className="text-sm font-medium text-foreground">{getOrgName(p.organizer_id)}</p>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-xs gap-1">
-                            <meta.icon className={`h-3 w-3 ${meta.color}`} />
-                            {meta.label}
-                          </Badge>
+                          <div className="flex flex-wrap items-center gap-1">
+                            <Badge variant="outline" className="text-xs gap-1">
+                              <meta.icon className={`h-3 w-3 ${meta.color}`} />
+                              {meta.label}
+                            </Badge>
+                            {(p.admin_notes || "").toUpperCase().includes("RENEWAL") && (
+                              <Badge className="text-xs bg-amber-500/15 text-amber-600 border-amber-500/30">Renewal</Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-sm text-foreground">{p.amount.toLocaleString()} ETB</TableCell>
                         <TableCell className="text-xs font-mono text-muted-foreground">{p.transaction_number || "—"}</TableCell>
