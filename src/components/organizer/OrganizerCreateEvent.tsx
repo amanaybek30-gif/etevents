@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Loader2, QrCode, Image as ImageIcon, X, Copy, Link as LinkIcon, Trash2, Video } from "lucide-react";
+import { Plus, Loader2, QrCode, Image as ImageIcon, X, Copy, Link as LinkIcon, Trash2, Video, Save } from "lucide-react";
 import type { OrganizerSection } from "./OrganizerSidebar";
 import type { SavedPaymentDetails } from "./OrganizerSettings";
 import TicketTiersEditor, { type TicketTier } from "./TicketTiersEditor";
@@ -176,7 +176,7 @@ const OrganizerCreateEvent = ({ userId, onNavigate, isPaid = true, onRequirePlan
     }));
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent, asDraft = false) => {
     e.preventDefault();
     if (!isPaid) { onRequirePlan?.(); return; }
 
@@ -251,7 +251,7 @@ const OrganizerCreateEvent = ({ userId, onNavigate, isPaid = true, onRequirePlan
         duration: eventForm.duration || null, ticket_price: eventForm.ticket_price || "Free",
         short_description: eventForm.short_description || null, about: eventForm.about || null,
         details: eventForm.details || null, image_url: imageUrl || null, video_url: videoUrl || null,
-        organizer_id: userId, is_published: true,
+        organizer_id: userId, is_published: !asDraft,
         accepted_payment_methods: isFreeEvent ? ["free"] : acceptedPayments,
         payment_info: isFreeEvent ? null : paymentInfo,
         payment_instructions: isFreeEvent ? null : (eventForm.payment_instructions || null),
@@ -283,8 +283,13 @@ const OrganizerCreateEvent = ({ userId, onNavigate, isPaid = true, onRequirePlan
       // Subscription validity is now a fixed 1-year window set on plan approval —
       // event creation no longer extends or modifies the expiry date.
 
-      setCreatedEventLink(`${window.location.origin}/event/${slug}`);
-      toast.success("Event published successfully!");
+      if (asDraft) {
+        setCreatedEventLink(null);
+        toast.success("Draft saved. You can publish it anytime from My Events.");
+      } else {
+        setCreatedEventLink(`${window.location.origin}/event/${slug}`);
+        toast.success("Event published successfully!");
+      }
       setEventForm({ title: "", slug: "", category: "General", date: "", end_date: "", time: "", location: "", map_link: "", duration: "", ticket_price: "Free", short_description: "", about: "", details: "", what_to_expect: "", other_category: "", host: "", partners: "", expected_attendees: "", payment_instructions: "" });
       setPriceMode("Free");
 
@@ -553,9 +558,6 @@ const OrganizerCreateEvent = ({ userId, onNavigate, isPaid = true, onRequirePlan
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Custom Registration Questions</h3>
-            <Button type="button" size="sm" variant="outline" className="h-7 text-xs border-border hover:border-primary" onClick={addQuestion}>
-              <Plus className="h-3 w-3 mr-1" /> Add Question
-            </Button>
           </div>
           <p className="text-xs text-muted-foreground">Add custom questions to collect additional information from attendees. Default fields (name, email, phone) are always included.</p>
           {customQuestions.length === 0 ? (
@@ -618,6 +620,9 @@ const OrganizerCreateEvent = ({ userId, onNavigate, isPaid = true, onRequirePlan
                   </div>
                 </div>
               ))}
+              <Button type="button" size="sm" variant="outline" className="h-8 text-xs border-border hover:border-primary" onClick={addQuestion}>
+                <Plus className="h-3 w-3 mr-1" /> Add Another Question
+              </Button>
             </div>
           )}
         </div>
@@ -717,10 +722,25 @@ const OrganizerCreateEvent = ({ userId, onNavigate, isPaid = true, onRequirePlan
           <div className="space-y-2"><Label>What to Expect</Label><textarea value={eventForm.what_to_expect} onChange={e => setEventForm({ ...eventForm, what_to_expect: e.target.value })} className="w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" rows={4} placeholder={"List each item on a new line\n• Live performances\n• Networking"} /><p className="text-xs text-muted-foreground">One item per line</p></div>
         </div>
 
-        <Button type="submit" disabled={creating} className="w-full bg-gradient-gold text-primary-foreground hover:opacity-90 py-6 text-base">
-          {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-          {creating ? "Publishing..." : "Submit Event"}
-        </Button>
+        <div className="space-y-2">
+          <Button type="submit" disabled={creating} className="w-full bg-gradient-gold text-primary-foreground hover:opacity-90 py-6 text-base">
+            {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+            {creating ? "Saving..." : "Publish Event"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={creating}
+            onClick={(e) => handleCreate(e as unknown as React.FormEvent, true)}
+            className="w-full border-border py-6 text-base"
+          >
+            <Save className="mr-2 h-4 w-4" />
+            Save as Draft
+          </Button>
+          <p className="text-center text-xs text-muted-foreground">
+            Drafts stay private — publish them anytime from My Events.
+          </p>
+        </div>
       </form>
 
       {createdEventLink && (
