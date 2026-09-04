@@ -58,14 +58,19 @@ const PlanPromptDialog = ({ open, onClose, userId }: Props) => {
   const [upgradePrice, setUpgradePrice] = useState(0);
   const [isEarlyUpgrade, setIsEarlyUpgrade] = useState(false);
   const [subscriptionPaidAt, setSubscriptionPaidAt] = useState<string | null>(null);
+  const [planExpired, setPlanExpired] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     const fetchProfile = async () => {
       const { data: prof } = await supabase.from("organizer_profiles")
-        .select("subscription_plan")
+        .select("subscription_plan, subscription_paid, subscription_expires_at")
         .eq("user_id", userId).single();
-      if (prof) setCurrentPlan(prof.subscription_plan || "free");
+      if (prof) {
+        setCurrentPlan(prof.subscription_plan || "free");
+        const exp = prof.subscription_expires_at ? new Date(prof.subscription_expires_at) : null;
+        setPlanExpired(!prof.subscription_paid || !exp || exp < new Date());
+      }
 
       // Get latest approved payment date
       const { data: lastPayment } = await supabase.from("subscription_payments")
@@ -83,7 +88,9 @@ const PlanPromptDialog = ({ open, onClose, userId }: Props) => {
   if (!open) return null;
 
   const currentPlanIndex = PLAN_ORDER.indexOf(currentPlan);
-  const canUpgrade = currentPlan === "organizer" || currentPlan === "pro";
+  const canUpgrade = (currentPlan === "organizer" || currentPlan === "pro") && !planExpired;
+  // When the plan has expired, organizers may freely pick ANY plan (including a lower one).
+  const canPickAnyPlan = planExpired || currentPlan === "free";
 
   const selectedPlan = PLANS.find(p => p.id === selectedPlanId);
   const isRenewalFlow = !!selectedPlanId && selectedPlanId === currentPlan && currentPlan !== "free";
@@ -226,7 +233,9 @@ const PlanPromptDialog = ({ open, onClose, userId }: Props) => {
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
               {step === "plan" && (currentPlan !== "free"
-                ? "Renew your current plan for another year, or upgrade for more events."
+                ? (planExpired
+                  ? "Your plan has expired — choose any plan below, including a smaller one, to continue."
+                  : "Renew your current plan for another year, or upgrade for more events.")
                 : "Select a plan to unlock features and start managing your events.")}
               {step === "payment" && (isRenewalFlow
                 ? "Pay the plan price below to renew. Your new event quota starts once the admin approves."
@@ -323,13 +332,13 @@ const PlanPromptDialog = ({ open, onClose, userId }: Props) => {
                     )}
                     <Button
                       onClick={() => handleSelectPlan(plan.id)}
-                      disabled={isLowerPlan && !isCurrentPlan && currentPlan !== "free"}
+                      disabled={isLowerPlan && !isCurrentPlan && !canPickAnyPlan}
                       className={`w-full ${(plan.popular && !isCurrentPlan) || isCurrentPlan ? "bg-gradient-gold text-primary-foreground" : ""}`}
                       variant={(plan.popular && !isCurrentPlan) || isCurrentPlan ? "default" : "outline"}
                     >
                       {isCurrentPlan ? (
                         <><RefreshCw className="h-3.5 w-3.5 mr-1" /> Renew {plan.name} — {plan.price} ETB</>
-                      ) : isLowerPlan && currentPlan !== "free" ? "Current or Lower" : "Select Plan"}
+                      ) : isLowerPlan && !canPickAnyPlan ? "Current or Lower" : "Select Plan"}
                     </Button>
                   </div>
                 );
