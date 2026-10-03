@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import AIInsightsPanel from "@/components/AIInsightsPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { deduplicateRegistrations } from "@/lib/deduplicateRegistrations";
 import {
@@ -482,6 +483,15 @@ const AdminAnalytics = () => {
 
   return (
     <div className="space-y-6">
+      <AIInsightsPanel
+        scope="admin"
+        getData={() => ({
+          totals: { totalRegs, totalEvents, publishedEvents, draftEvents, totalOrganizers, totalCheckedIn, totalApproved, totalPending, totalRejected, platformAttendanceRate, platformNoShowRate, totalRevenue, totalVendors, totalSurveys, totalSurveyResponses, avgRegsPerEvent, avgRegsPerOrganizer, returningPct, firstTimePct, performanceScore },
+          peakHour, statusData, paymentMethodData, sourceData, attendeeTypeData, planDistribution, weekdayData, categoryData,
+          topEvents: topEvents.slice(0, 15), topOrganizers: topOrganizers.slice(0, 15),
+          registrationsTimeline: regTimeline.slice(-60), organizerSignups: orgSignups.slice(-60), performanceBreakdown,
+        })}
+      />
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
