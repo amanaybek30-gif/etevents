@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
+import AIInsightsPanel from "@/components/AIInsightsPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { deduplicateRegistrations } from "@/lib/deduplicateRegistrations";
 import { toast } from "sonner";
@@ -305,6 +306,32 @@ const AttendeeIntelligence = ({ userId }: Props) => {
           <BarChart3 className="h-4 w-4" /> {showAnalytics ? "Hide" : "Show"} CRM Analytics
         </button>
       </div>
+
+      <AIInsightsPanel
+        scope="crm"
+        getData={() => {
+          const segs = { vip: 0, loyal: 0, atRisk: 0, oneTime: 0 };
+          const tagCounts: Record<string, number> = {};
+          profiles.forEach(p => {
+            if (p.totalRegistered >= 3 && p.attendanceRate >= 80) segs.vip++;
+            else if (p.totalRegistered >= 2) segs.loyal++;
+            if (p.totalRegistered >= 2 && p.attendanceRate < 50) segs.atRisk++;
+            if (p.totalRegistered === 1) segs.oneTime++;
+            p.tags.forEach(t => { tagCounts[t] = (tagCounts[t] || 0) + 1; });
+          });
+          const count = (key: "organization" | "job_title" | "city") => {
+            const m: Record<string, number> = {};
+            profiles.forEach(p => { const v = p[key]; if (v) m[v] = (m[v] || 0) + 1; });
+            return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 15);
+          };
+          return {
+            stats, events: events.length, segments: segs, tags: tagCounts,
+            topOrganizations: count("organization"), topJobTitles: count("job_title"), topCities: count("city"),
+            topAttendees: [...profiles].sort((a, b) => b.engagementScore - a.engagementScore).slice(0, 15)
+              .map(p => ({ name: p.full_name, registered: p.totalRegistered, attended: p.totalAttended, rate: p.attendanceRate, score: p.engagementScore })),
+          };
+        }}
+      />
 
       {/* Privacy notice */}
       <div className="flex items-center gap-2 rounded-lg border border-border bg-secondary/50 px-3 py-2">
