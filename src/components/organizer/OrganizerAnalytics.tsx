@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import AIInsightsPanel from "@/components/AIInsightsPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { deduplicateRegistrations } from "@/lib/deduplicateRegistrations";
 import {
@@ -697,6 +698,19 @@ const OrganizerAnalytics = ({ userId, userPlan = "free", subscriptionEnabled = f
 
   return (
     <div className="space-y-6">
+      <AIInsightsPanel
+        scope="organizer"
+        locked={userPlan !== "pro" && userPlan !== "corporate"}
+        getData={() => ({
+          selectedEvent: selectedEventId === "all" ? "All events" : allEvents.find(e => e.id === selectedEventId)?.title,
+          totals: { totalEvents, totalRegs, totalApproved, checkedInCount, revenue, attendanceRate, noShowRate, noShowCount, remainingCapacity, avgRegPerEvent, conversionRate, returningPct, firstTimePct, totalViews, performanceScore },
+          peakHour, peakCheckinWindow, vendorStats,
+          statusData, sourceData, attendeeTypeData, paymentMethodData, demographicData, weekdayData, funnelData,
+          eventCompare: eventCompareData.slice(0, 30),
+          dailyRegistrations: dailyData.slice(-60),
+          viewsByEvent: viewsByEvent.slice(0, 20), viewSources, performanceBreakdown,
+        })}
+      />
       {/* Header with Export */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3 flex-wrap">
